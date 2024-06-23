@@ -1,0 +1,99 @@
+.diet__plan > *:not(:last-child) {
+    margin: 0 0 25px 0;
+}
+
+.diet-plan > *:not(:last-child) {
+    margin: 0 0 10px 0;
+}
+
+.diet-plan__title {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.meal__card {
+    background-color: #957BFF;
+    color: #000;
+    border-radius: 15px;
+    padding: 15px;
+}
+
+.meal__card > *:not(:last-child) {
+    margin: 0 0 10px 0;
+}
+
+.meal__card-title {
+    font-size: clamp(24px, 3.9vw, 30px);
+    font-weight: 600;
+}
+
+.meal__card-subtitle {
+    font-size: clamp(18px, 2.8vw, 22px);
+}
+
+.meal__name {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.meal__foods {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.macros {
+    color: #000;
+    display: flex;
+    gap: 5px;
+}
+
+.macros > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 60px;
+    min-height: 60px;
+    padding: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #1a1a1a47;
+}
+
+.macros__title {
+    font-size: 12px;
+}
+
+.meal-food {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #1A1A1A;
+    border-radius: 10px;
+    color: #957BFF;
+    padding: 15px;
+}
+
+.calories {
+    background-color: #91DDCF;
+}
+
+.proteins {
+    background-color: #FF004D;
+}
+
+.carbohydrates {
+    background-color: #FFDE95;
+}
+
+.fats {
+    background-color: #059212;
+}
+
+@media screen and (max-width: 479px) {
+    .meal-food__macros {
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: center;
+    }
+}

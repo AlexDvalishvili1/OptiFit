@@ -1,0 +1,105 @@
+.generator {
+    padding: 25px 0 0 0;
+}
+
+.generator__title {
+    font-size: clamp(26px, 3.9vw, 30px);
+    font-weight: 600;
+}
+
+.generator__container {
+    max-width: 780px;
+    margin: 0 auto;
+    height: 100%;
+}
+
+.generator__content {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    align-items: center;
+    padding: 25px 0;
+    height: 100%;
+}
+
+.generator__result {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 600px;
+    overflow: hidden;
+    font-size: clamp(18px, 2.56vw, 20px);
+    border: 2px solid #aaa;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.02);
+    padding: 25px 65px 25px 25px;
+}
+
+#generator__history {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    height: 100%;
+}
+
+.generator__history-title {
+    font-size: 32px;
+    font-weight: 700;
+    padding: 0 10px;
+}
+
+.generator__history-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.generator__history-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.generator__history-item {
+    border-bottom: 1px solid #fff;
+}
+
+.generator__history-item p {
+    border-radius: 20px;
+    padding: 20px 10px;
+}
+
+.generator__history-item p:hover {
+    background-color: rgba(26, 26, 26, 0.90);
+}
+
+.generator__buttons {
+    display: flex;
+    flex-direction: column;
+}
+
+.generator__buttons > *:not(:last-child) {
+    margin: 0 0 15px 0;
+}
+
+.generator__history-lg button {
+    background-image: none;
+}
+
+/* MEDIAS */
+
+@media screen and (max-width: 767px) {
+    .generator__result {
+        padding: 25px 15px;
+    }
+}
+
+@media screen and (max-width: 479px) {
+
+    .generator__buttons {
+        width: 100%;
+    }
+
+    .generator__buttons > * {
+        width: 100%;
+    }
+}

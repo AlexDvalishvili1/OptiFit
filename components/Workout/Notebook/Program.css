@@ -1,0 +1,126 @@
+.workout__days {
+    padding: 100px 0;
+    color: #957BFF;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.training__plan > *:not(:last-child) {
+    margin: 0 0 25px 0;
+}
+
+.exercise__day > *:not(:last-child) {
+    margin: 0 0 10px 0;
+}
+
+.exercise__day-title {
+    font-size: clamp(24px, 3.9vw, 30px);
+    font-weight: 600;
+}
+
+.exercise__day-subtitle {
+    font-size: clamp(18px, 2.8vw, 22px);
+}
+
+.exercise__day-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #957BFF;
+    height: 100px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.exercise__day-btn:hover {
+    background-color: rgba(149, 123, 255, 0.8);
+}
+
+.exercise__card {
+    background-color: #957BFF;
+    color: #000;
+    border-radius: 15px;
+    padding: 15px;
+}
+
+.exercise__card > *:not(:last-child) {
+    margin: 0 0 10px 0;
+}
+
+.exercise__name {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.exercise__instructions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.exercise__instructions-expander {
+    color: #fff;
+    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    background-color: #1A1A1A;
+    border-radius: 10px;
+}
+
+.exercise__instructions-text {
+    color: #fff;
+    background-color: rgba(26, 26, 26, 0.6);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.notebook__day > * {
+    width: 400px;
+}
+
+.notebook__day > *:not(:last-child) {
+    margin: 0 0 25px 0;
+}
+
+.notebook__timer {
+    position: sticky;
+    left: 10px;
+    top: 120px;
+}
+
+.notebook__sets {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.notebook__sets table {
+    width: 50%;
+}
+
+.notebook__exercises > *:not(:last-child) {
+    margin: 0 0 15px 0;
+}
+
+.notebook__sets-buttons {
+    width: 50%;
+    margin: 0 auto 10px auto !important;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+/* MEDIAS */
+
+
+@media screen and (max-width: 479px) {
+    .notebook__day > * {
+        width: 100%;
+    }
+}

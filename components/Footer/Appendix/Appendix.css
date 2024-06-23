@@ -1,0 +1,22 @@
+.appendix__row {
+    font-size: clamp(11px, 1.8vw, 14px);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.appendix__row > *:not(:last-child) {
+    margin: 0 10px 0 0;
+}
+
+.footer__line {
+    padding: 15px 0 40px;
+}
+
+.footer__line span {
+    display: block;
+    background-color: #957BFF;
+    width: 100%;
+    height: 10px;
+}

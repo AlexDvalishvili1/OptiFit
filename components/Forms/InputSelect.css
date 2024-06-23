@@ -1,0 +1,42 @@
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: 0;
+    border: 0;
+    background: #2b2e2e;
+    flex: 1;
+    padding: 0 16px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+}
+
+select::-ms-expand {
+    display: none;
+}
+
+.select {
+    width: 100%;
+    position: relative;
+    display: flex;
+    line-height: 3;
+    overflow: hidden;
+    border-radius: 5px;
+}
+
+.select::after {
+    content: '\25BC';
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0 1em;
+    background: #1A1A1A;
+    cursor: pointer;
+    pointer-events: none;
+    transition: .25s all ease;
+}
+
+.select:hover::after {
+    color: #957BFF;
+}

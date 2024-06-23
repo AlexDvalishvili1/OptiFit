@@ -1,0 +1,18 @@
+/* FOOTER */
+
+.footer__medias {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+}
+
+.footer__medias-item svg {
+    width: 32px;
+    height: 32px;
+}
+
+.footer__column {
+    display: flex;
+    flex-direction: column;
+}

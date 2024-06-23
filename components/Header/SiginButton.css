@@ -1,0 +1,75 @@
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropbtn {
+    padding: 15px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 120%;
+    right: 0;
+    z-index: 1;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 15px;
+}
+
+.dropdown-content > *:not(:last-child) {
+    margin: 0 0 5px 0;
+}
+
+.logout {
+    background-color: #600000 !important;
+    color: #ff0000 !important;
+}
+
+.logout:hover {
+    background-color: #500000 !important;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    font-size: clamp(14px, 1.6vw, 18px);
+    background-color: #333;
+    padding: 15px 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-content a:hover {
+    background-color: #222;
+}
+
+/* Dropdown triangle */
+.dropdown-content::before {
+    content: ' ';
+    position: absolute;
+    top: -10px;
+    right: 12.5%;
+    border-style: solid;
+    border-width: 0 10px 10px 10px;
+    border-color: transparent transparent #333 transparent;
+}
+
+#workout__dropdown::before {
+    content: ' ';
+    position: absolute;
+    top: -10px;
+    right: 40%;
+    border-style: solid;
+    border-width: 0 10px 10px 10px;
+    border-color: transparent transparent #333 transparent;
+}
+
+#start-workout {
+    background-color: #22bb33;
+    color: #000;
+}
+
+#start-workout:hover {
+    background-color: #1b9129;
+}

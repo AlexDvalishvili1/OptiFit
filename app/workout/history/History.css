@@ -1,0 +1,115 @@
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rotate-back {
+    from {
+        transform: rotate(360deg);
+    }
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+.workout-history {
+    padding: 50px 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.workout-history > *:not(:last-child) {
+    margin: 0 0 25px 0;
+}
+
+.workout-history__title {
+    font-size: clamp(26px, 3.9vw, 30px);
+    font-weight: 600;
+}
+
+.workout-history__subtitle {
+    font-size: clamp(24px, 3.5vw, 28px);
+    font-weight: 600;
+}
+
+.calendar-day {
+    position: relative;
+}
+
+.calendar-day.highlight {
+    color: #957BFF;
+}
+
+
+.workout-circle__container {
+    max-width: 780px;
+    margin: 0 auto !important;
+    padding: 80px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    flex: 1 1 auto;
+}
+
+.workout-history__circle {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: rotate 10s linear infinite;
+    transform-origin: center center;
+}
+
+.workout-history__circle:hover {
+    animation-play-state: paused;
+}
+
+.workout-history__day {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ddd;
+    border-radius: 50%;
+    border: 2px solid #957BFF;
+    cursor: pointer;
+}
+
+.workout-history__day:hover {
+    box-shadow: 0 0 15px #957BFF;
+}
+
+.workout-history__day span {
+    display: inline-block;
+    animation: rotate-back 10s linear infinite;
+    white-space: nowrap;
+}
+
+.workout-history__lasts {
+    display: flex;
+    justify-content: center;
+}
+
+@media screen and (max-width: 479px) {
+    .workout-history__circle {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: rotate 10s linear infinite;
+        transform-origin: center center;
+    }
+}

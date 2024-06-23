@@ -1,0 +1,55 @@
+/* HEADER */
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    border-bottom: 1px solid rgb(149, 123, 255);
+    background-color: #1A1A1A;
+    padding: 25px 0;
+}
+
+.header__navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header__navbar-menu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-grad, .btn-grad button {
+    background-image: linear-gradient(to right, #4776E6 0%, #8E54E9 50%, #4776E6 100%);
+    transition: 0.5s;
+    background-size: 200% auto;
+    color: #fff;
+    border-radius: 10px;
+}
+
+.btn-grad:hover, .btn-grad button:hover {
+    background-position: right center;
+}
+
+.burger__menu-item span {
+    color: #000000;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 20px;
+}
+
+/* MEDIAS */
+
+@media screen and (max-width: 767px) {
+
+    .header__navbar-logo a {
+        width: 40px;
+        overflow-x: hidden;
+    }
+}

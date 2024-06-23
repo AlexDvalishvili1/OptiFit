@@ -1,0 +1,167 @@
+body {
+    height: 100%;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 15px;
+    height: 100%;
+}
+
+button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 100px;
+    padding: 15px 25px;
+    font-size: clamp(14px, 1.6vw, 18px);
+    transition: 0.1s ease-in-out;
+    white-space: nowrap;
+}
+
+/* MAIN */
+
+main {
+    padding: 105px 0 0;
+    flex: 1 1 auto;
+    font-weight: 500;
+    color: #957bff;
+}
+
+main > * {
+    padding: 100px 0;
+}
+
+.footer {
+    padding: 50px 0;
+}
+
+/* FORMS */
+
+.form__container {
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.form__container > *:not(:last-child) {
+    margin: 0 0 25px 0;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    background-color: #957BFF;
+    color: #374151;
+    padding: 30px 40px;
+    border-radius: 20px;
+    box-shadow: 0 0 10px rgba(149, 123, 255, 0.5);
+}
+
+form > *:not(:last-child) {
+    margin: 0 0 25px;
+}
+
+.form__title {
+    font-size: 30px;
+    color: #957BFF;
+    font-weight: bold;
+    text-align: center;
+}
+
+.form__row {
+    display: grid;
+    grid-template-areas: 'height weight';
+    gap: 15px;
+}
+
+.form__link a:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.form__button button {
+    font-size: 20px;
+    border-radius: 5px;
+}
+
+.form__line {
+    display: flex;
+    align-items: center;
+}
+
+.form__line p {
+    padding: 0 5px;
+    white-space: nowrap;
+    color: #374151;
+}
+
+.form__line span {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+.form__medias {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.form__medias a {
+    display: inline-block;
+    border: 1px solid rgba(55, 65, 81, 0.5);
+    border-radius: 8px;
+    padding: 10px 35px;
+}
+
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 50px #957BFF inset;
+}
+
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 50px #957BFF inset;
+}
+
+/* MEDIAS */
+
+@media screen and (max-width: 767px) {
+
+    main > * {
+        padding: 50px 0;
+    }
+
+    .footer {
+        padding: 20px 0;
+    }
+
+    button {
+        padding: 12px 20px;
+    }
+
+}
+
+@media screen and (max-width: 479px) {
+
+    /* FORMS */
+    form {
+        border-radius: 0;
+    }
+
+    .form__row {
+        grid-template-areas:
+                "dob dob"
+                "height weight";
+    }
+
+    .form__advanced {
+        font-size: 14px;
+    }
+
+    .form__medias a {
+        padding: 10px 6.25vw;
+    }
+}

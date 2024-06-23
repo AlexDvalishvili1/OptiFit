@@ -1,0 +1,36 @@
+/* START__CTA*/
+
+.cta__content {
+    display: flex;
+    flex-direction: column;
+}
+
+.cta__content > *:not(:last-child) {
+    margin: 0 0 40px 0;
+}
+
+.cta__buttons {
+    display: flex;
+    flex-direction: row;
+}
+
+.cta__buttons > *:not(:last-child) {
+    margin: 0 15px 0 0;
+}
+
+/* MEDIAS */
+
+@media screen and (max-width: 479px) {
+
+    .cta__buttons {
+        flex-direction: column;
+    }
+
+    .cta__button a {
+        width: 100%;
+    }
+
+    .cta__buttons > *:not(:last-child) {
+        margin: 0 0 15px 0;
+    }
+}

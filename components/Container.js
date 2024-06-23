@@ -1,0 +1,12 @@
+import React from 'react';
+
+const Container = ({children, style}) => {
+    return (
+        <div className={"container"} style={style ? style : {}}>
+            {children}
+        </div>
+    )
+};
+
+export default Container;
+

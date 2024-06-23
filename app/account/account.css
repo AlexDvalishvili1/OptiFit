@@ -1,0 +1,36 @@
+.account__row {
+    display: flex;
+    gap: 8px;
+}
+
+.account__row > * {
+    width: 50%;
+}
+
+.account__hw {
+    display: flex;
+    gap: 8px;
+}
+
+/* MEDIAS */
+
+@media screen and (max-width: 479px) {
+    .account__row {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .account__row > * {
+        width: 100%;
+    }
+
+    .account__hw {
+        display: flex;
+        gap: 8px;
+    }
+
+    .css-1gzjkyy-MuiFormControl-root-MuiTextField-root {
+        width: 100%;
+    }
+}
