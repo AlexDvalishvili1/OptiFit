@@ -16,6 +16,7 @@ export const getUser = async (email, password) => {
         await connectDB();
 
         const user = await User.findOne({email: email});
+
         if (user) {
             if (await bcrypt.compare(password, user._doc.password)) {
                 return user;
@@ -51,14 +52,17 @@ export const createUser = async (email, password) => {
     }
 };
 
-export async function updateUser(reqBody, id, data) {
+export async function updateUser(id, data) {
     try {
         await connectDB();
-        const user = await User.findOneAndDelete(
-            {_id: id},
-        );
-        const updated = new User({...user._doc, ...data});
-        await updated.save();
+
+        const user = await User.findById(id);
+        if (!user) throw new Error("User not found");
+
+        Object.assign(user, data);
+
+        await user.save();
+        return user;
     } catch (error) {
         console.error('Error updating user:', error);
         throw error;

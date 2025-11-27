@@ -43,6 +43,7 @@ export const authOptions: AuthOptions = {
                     }
                 } else {
                     const user = await getUser(email, password);
+
                     if (user) {
                         return user;
                     }

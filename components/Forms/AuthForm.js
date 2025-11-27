@@ -69,6 +69,7 @@ const AuthForm = ({action, title, button, advanced}) => {
 
         if (action === "register") {
             try {
+                console.log("Password: " + result.data.password)
                 response = await signIn('credentials', {
                     redirect: false,
                     email: result.data.email,

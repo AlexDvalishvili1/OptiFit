@@ -1,7 +1,7 @@
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
-import {updateUser} from "@/actions/db-actions";
-import {calculateAge} from "@/actions/db-actions";
+import {updateUser} from "../../../actions/db-actions";
+import {calculateAge} from "../../../actions/db-actions";
 import {getServerSession} from "next-auth/next";
 import {authOptions} from "../../authOptions";
 
@@ -27,7 +27,7 @@ export async function POST(req) {
             advanced: true,
         }
 
-        await updateUser(reqBody, session?.user?.id, data)
+        await updateUser(session?.user?.id, data)
             .catch(error => {
                 console.error("Error updating user:", error);
             });
