@@ -9,10 +9,12 @@ import {
     getUserDetails, setBan
 } from "@/actions/db-actions";
 import {getServerSession} from "next-auth/next";
-import {GoogleGenerativeAI} from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import {authOptions} from "@/app/authOptions";
 
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+const genAI =  new GoogleGenAI({
+    apiKey: process.env.API_KEY
+});
 
 export async function POST(req) {
     try {
@@ -46,11 +48,8 @@ export async function POST(req) {
         let allergiesList = "";
         userData.allergies.length !== 0 ? userData.allergies.map((allergy) => allergiesList += allergy.title + ",") : allergiesList = "empty";
         const today = new Date();
-        const model = genAI.getGenerativeModel({model: "gemini-pro"});
         const history = await getChatHistory(today, session.user.id);
-        const chat = model.startChat({
-            history: history,
-        });
+
         let msg;
         if (reqBody?.userModifications) {
             msg = `Hi AI, Please follow these rules for processing user messages related to diet modifications:
@@ -147,11 +146,50 @@ export async function POST(req) {
             }
 `;
         } else {
-            msg = `I am ${userData.age} years old ${userData.gender}, my height is ${userData.height}, my weight is ${userData.weight}kg and my goal is ${userData.goal}. My physical activity level is (${userData.goal}). I have allergies to (${allergiesList}). Based on my information and goal, calculate my daily protein, fat, and carbohydrate needs to reach this goal, and create a meal plan. Provide the meal plan in JSON format only, without any preceding JSON tags or additional text. Ensure that macros like calories, protein, fat, and carbohydrates are provided as exact numbers, not ranges (e.g., "2700" and not "2600-2800"). Use "g" as the unit for grams.
+            msg = `I am ${userData.age} years old ${userData.gender}, my height is ${userData.height}, my weight is ${userData.weight}kg and my goal is ${userData.goal}. My physical activity level is (${userData.activity}). I have allergies to (${allergiesList}).
 
-JSON Structure for Meal Plan:
+Based on my information and goal:
+- Calculate my daily protein, fat, and carbohydrate needs to reach this goal.
+- Create a meal plan.
+
+STRICT OUTPUT RULES:
+1. The output must be **valid JSON only**.
+2. The JSON must start directly with '{' and end with '}'.
+3. Do NOT add markdown fences like \`\`\`json or \`\`\`.
+4. Do NOT add explanations, text, comments, or natural language before or after the JSON.
+5. Only the JSON object should be returned.
+
+❌ Incorrect Example (NOT allowed):
+\`\`\`json
+{ "calories": "2700", "protein": "150g", ... }
+\`\`\`
+
+✅ Correct Example (allowed):
 {
-  "calories": "Total daily calories (integer or float as string)",
+  "calories": "2700",
+  "protein": "150g",
+  "fat": "80g",
+  "carbohydrates": "350g",
+  "meals": [
+    {
+      "name": "Breakfast",
+      "foods": [
+        {
+          "name": "Oats",
+          "serving": "100g",
+          "calories": 389,
+          "protein": "13g",
+          "fat": "7g",
+          "carbohydrates": "68g"
+        }
+      ]
+    }
+  ]
+}
+
+JSON Structure you must follow:
+{
+  "calories": "Total daily calories (string, integer or float)",
   "protein": "Total daily protein intake (string with unit)",
   "fat": "Total daily fat intake (string with unit)",
   "carbohydrates": "Total daily carbohydrate intake (string with unit)",
@@ -162,43 +200,26 @@ JSON Structure for Meal Plan:
         {
           "name": "Food name (string)",
           "serving": "Serving size (string)",
-          "calories": "Calories per serving (integer or float)",
-          "protein": "Protein per serving (string with unit)",
-          "fat": "Fat per serving (string with unit)",
-          "carbohydrates": "Carbohydrates per serving (string with unit)"
-        },
-        {
-          "name": "Another food name (string)",
-          "serving": "Another serving size (string)",
-          "calories": "Calories per serving (integer or float)",
+          "calories": Number (integer or float, no quotes),
           "protein": "Protein per serving (string with unit)",
           "fat": "Fat per serving (string with unit)",
           "carbohydrates": "Carbohydrates per serving (string with unit)"
         }
-        // Add more foods as necessary
-      ]
-    },
-    {
-      "name": "Next meal name (string)",
-      "foods": [
-        {
-          "name": "Food name (string)",
-          "serving": "Serving size (string)",
-          "calories": "Calories per serving (integer or float)",
-          "protein": "Protein per serving (string with unit)",
-          "fat": "Fat per serving (string with unit)",
-          "carbohydrates": "Carbohydrates per serving (string with unit)"
-        }
-        // Add more foods as necessary
       ]
     }
-    // Add more meals as necessary
   ]
-}
-`;
+}`;
         }
-        const result = await chat.sendMessage(msg);
-        const text = result.response.text();
+        const result = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                ...history,
+                { role: "user", parts: [{ text: msg }] }
+            ]
+        });
+
+        const text = result.text;
+
         if (text.toLowerCase().includes("error")) {
             let message;
             if (ban) {
@@ -222,6 +243,7 @@ JSON Structure for Meal Plan:
 
         return new Response(JSON.stringify({result: text}));
     } catch (error) {
+        console.log("Error: " + error)
         return new Response(JSON.stringify({message: "Something went wrong..."}));
     }
 }

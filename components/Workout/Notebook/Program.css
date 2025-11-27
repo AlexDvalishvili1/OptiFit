@@ -24,6 +24,7 @@
 
 .exercise__day-subtitle {
     font-size: clamp(18px, 2.8vw, 22px);
+    white-space: normal;
 }
 
 .exercise__day-btn {

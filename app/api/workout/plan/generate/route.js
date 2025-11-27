@@ -9,10 +9,12 @@ import {
     getUserDetails, setBan
 } from "@/actions/db-actions";
 import {getServerSession} from "next-auth/next";
-import {GoogleGenerativeAI} from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import {authOptions} from "@/app/authOptions";
 
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+const genAI =  new GoogleGenAI({
+    apiKey: process.env.API_KEY
+});
 
 export async function POST(req) {
     try {
@@ -51,9 +53,7 @@ export async function POST(req) {
             goal: getGoal(user.goal),
         };
 
-        const model = genAI.getGenerativeModel({model: "gemini-1.5-flash"});
         const history = await getProgramChatHistory(reqBody, session.user.id);
-        const chat = model.startChat({ history: history });
 
         let msg;
         if (reqBody?.userModifications) {
@@ -151,28 +151,117 @@ export async function POST(req) {
 
             **ATTENTION! This is user Input that you need to process: "${reqBody.userModifications}"`;
         } else {
-            msg = `Create a gym training program in JSON format for a ${userData.age} years old ${userData.gender} with the goal of ${userData.goal}. The program should include a full week's plan with resistance and cardio exercises, specifying targeted muscle groups each day and rest days. Use this structure:
-[
-    {
-        "day": "Day of the week",
-        "rest": true / false,
-        "muscles": "Targeted muscle groups",
-        "exercises": [
-            {
-                "name": "Exercise name",
-                "sets": "Number of sets as string",
-                "reps": "Repetition range as string",
-                "instructions": "Step-by-step instructions for the exercise, including form, breathing, and common mistakes to avoid",
-                "video": "Shortest tutorial video link"
-            }
-        ]
-    }
-]
-Keep instructions concise. Add step-by-step instructions without break lines, only using '\\n' after each step. ATTENTION!!! RETURN ONLY JSON FORMAT WITHOUT ANY JSON OR OTHER TAGS AND TEXT`;
-        }
+            msg = `
+            Generate a FULL 7-day weekly gym training program in pure JSON format for a ${userData.age}-year-old ${userData.gender} with the goal of ${userData.goal}.
 
-        const result = await chat.sendMessage(msg);
-        const text = result.response.text();
+===========================
+STRICT OUTPUT RULES (READ CAREFULLY)
+===========================
+1. OUTPUT MUST BE VALID JSON ONLY.
+2. OUTPUT MUST START WITH '[' AND END WITH ']'.
+3. DO NOT include markdown fences like \`\`\`json or \`\`\` anywhere.
+4. DO NOT include explanations, comments, natural language, or any text outside the JSON.
+5. All strings must use ONLY valid JSON escapes: \n, \", \\, \t, \b, \f, \r.
+6. DO NOT include any invalid escape sequences such as \s, \P, \q, \_, or any unsupported sequences.
+7. DO NOT include emoji or non-ASCII characters.
+8. URLs MUST contain NO spaces.
+9. Strings MUST NOT contain unescaped quotes.
+10. The JSON MUST parse with JSON.parse() WITHOUT any cleaning or preprocessing.
+
+===========================
+REQUIRED JSON STRUCTURE
+===========================
+[
+  {
+    "day": "Day name",
+    "rest": true or false,
+    "muscles": "Targeted muscle groups",
+    "exercises": [
+      {
+        "name": "Exercise name",
+        "sets": "number as string",
+        "reps": "string",
+        "instructions": "Use ONLY '\\n' for line breaks. No other escape sequences.",
+        "video": "Valid URL string"
+      }
+    ]
+  }
+]
+
+===========================
+ADDITIONAL RULES
+===========================
+- Provide EXACTLY 7 objects (Monday through Sunday).
+- For rest days: "rest": true and "exercises": [].
+- For training days: "rest": false.
+- All exercise instructions MUST NOT contain unescaped backslashes.
+- If a literal backslash is needed, escape it as "\\\\".
+- No empty strings for "muscles"—use a meaningful description or set it to "Rest".
+
+===========================
+SHORT VALID EXAMPLE (FOLLOW THIS SHAPE)
+===========================
+[
+  {
+    "day": "Monday",
+    "rest": false,
+    "muscles": "Chest, Triceps",
+    "exercises": [
+      {
+        "name": "Barbell Bench Press",
+        "sets": "3",
+        "reps": "8-12",
+        "instructions": "Lie on a weight bench with feet flat on the floor.\\nGrip the barbell with an overhand grip.\\nLower the barbell to your chest.\\nPress the barbell back up.\\nMaintain core tightness and control.",
+        "video": "https://youtu.be/o9x41-xQ51Y"
+      },
+      {
+        "name": "Incline Dumbbell Press",
+        "sets": "3",
+        "reps": "8-12",
+        "instructions": "Sit on an incline bench.\\nHold dumbbells at chest level.\\nPress the dumbbells upward.\\nLower with control.\\nKeep your back flat.",
+        "video": "https://youtu.be/7b_H22k6t0c"
+      }
+    ]
+  },
+  {
+    "day": "Tuesday",
+    "rest": false,
+    "muscles": "Legs",
+    "exercises": [
+      {
+        "name": "Squats",
+        "sets": "3",
+        "reps": "8-12",
+        "instructions": "Stand with feet shoulder-width apart.\\nSquat down while keeping your core tight.\\nReturn to standing by pushing through your heels.",
+        "video": "https://youtu.be/Uja_w8g9N5w"
+      }
+    ]
+  },
+  {
+    "day": "Wednesday",
+    "rest": true,
+    "muscles": "Rest",
+    "exercises": []
+  }
+]
+===========================
+FINAL REMINDER
+===========================
+RETURN ONLY PURE JSON. NO EXTRA CHARACTERS. NO MARKDOWN.
+            `}
+
+        const result = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                ...history,
+                { role: "user", parts: [{ text: msg }] }
+            ]
+        });
+
+        const text = result.text;
+
+
+        console.log(text)
 
         if (text.toLowerCase().includes("error")) {
             let message;
