@@ -307,3 +307,55 @@ export const addWorkoutAiMessage = async (id, message) => {
         throw error;
     }
 }
+
+export const startWorkout = async (id, day) => {
+    try {
+        await connectDB();
+        const date = new Date();
+        const userWorkout = {
+            date,
+            active: true,
+            workout: day,
+        }
+
+        await User.findOneAndUpdate(
+            {_id: id},
+            {$push: {workouts: userWorkout}},
+            {new: true, upsert: false}
+        );
+    } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+    }
+}
+
+export const endWorkout = async (id, day, timer) => {
+    try {
+        await connectDB();
+        const user = await getUserDetails(id);
+        const workouts = user?.workouts;
+        let lastIndex;
+        if (workouts) {
+            lastIndex = workouts.length - 1;
+        }
+        const path = `workouts.${lastIndex}`;
+
+        await User.findOneAndUpdate(
+            {_id: id},
+            {$unset: {[path]: ""}}
+        );
+
+        const activeWorkout = workouts[lastIndex];
+        activeWorkout.active = false;
+        activeWorkout.workout = day;
+        activeWorkout.timer = timer;
+
+        await User.findOneAndUpdate(
+            {_id: id},
+            {[path]: activeWorkout}
+        );
+    } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+    }
+}

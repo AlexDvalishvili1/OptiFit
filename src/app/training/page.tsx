@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import {useRouter} from "next/navigation";
 import {DashboardLayout} from "@/components/layout/DashboardLayout";
 import {Button} from "@/components/ui/button";
 import {Textarea} from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ import {
     ChevronDown,
     ChevronUp,
     Info,
+    Play,
 } from "lucide-react";
 
 type ProgramExercise = {
@@ -35,6 +37,16 @@ type ProgramDay = {
 };
 
 type ProgramWeek = ProgramDay[];
+
+/** Payload shape your startWorkout backend expects: reqBody.day */
+type WorkoutSetData = { weight: number; reps: number };
+type ActiveExercise = { name: string; data: WorkoutSetData[] };
+type ActiveWorkoutDay = {
+    day: string;
+    muscles: string;
+    rest: boolean;
+    exercises: ActiveExercise[];
+};
 
 function isValidProgramWeek(x): x is ProgramWeek {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -109,14 +121,36 @@ function splitSteps(instructions: string) {
         .filter(Boolean);
 }
 
-// ✅ Your real routes
+// ✅ SET THESE TO YOUR REAL ROUTES
 const API = {
     getTraining: "/api/workout/plan/get",
     aiTraining: "/api/workout/plan/generate",
+    startWorkout: "/api/workout/start", // ✅ your start backend route
+    getActiveWorkout: "/api/workout/get/active", // ✅ your get active backend route
 };
+
+const ROUTES = {
+    notebook: "/notebook", // ✅ change if your notebook route differs
+};
+
+function toActiveWorkoutDay(day: ProgramDay): ActiveWorkoutDay {
+    return {
+        day: day.day,
+        muscles: day.muscles,
+        rest: day.rest,
+        exercises: (day.exercises || []).map((ex) => {
+            const setsCount = Math.max(1, Number(ex.sets) || 1);
+            return {
+                name: ex.name,
+                data: Array.from({length: setsCount}).map(() => ({weight: 0, reps: 0})),
+            };
+        }),
+    };
+}
 
 export default function TrainingPage() {
     const {toast} = useToast();
+    const router = useRouter();
 
     const [loading, setLoading] = React.useState(true);
     const [plan, setPlan] = React.useState<ProgramWeek | null>(null);
@@ -135,6 +169,10 @@ export default function TrainingPage() {
 
     // per-exercise "How to do" collapses
     const [openHowTo, setOpenHowTo] = React.useState<Record<string, boolean>>({});
+
+    // start workout UX
+    const [startingDay, setStartingDay] = React.useState<string | null>(null);
+    const [hasActiveWorkout, setHasActiveWorkout] = React.useState(false);
 
     function toggleHowTo(key: string) {
         setOpenHowTo((prev) => ({...prev, [key]: !prev[key]}));
@@ -205,8 +243,15 @@ export default function TrainingPage() {
         }
     }
 
+    async function loadActiveWorkoutFlag() {
+        const {data} = await postJson(API.getActiveWorkout);
+        if (data?.error) return;
+        setHasActiveWorkout(!!data?.result);
+    }
+
     React.useEffect(() => {
         loadTraining();
+        loadActiveWorkoutFlag();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -249,7 +294,7 @@ export default function TrainingPage() {
 
             setRawPlan(parsed);
             setPlan(week);
-            setOpenHowTo({}); // reset all expanded “How to do”
+            setOpenHowTo({});
             toast({variant: "success", title: "Program generated", description: "Your weekly plan is ready."});
         } finally {
             setGenerating(false);
@@ -321,12 +366,43 @@ export default function TrainingPage() {
             setLocalNumber(LS_KEYS.modCount(dayKey), used + 1);
             refreshModLimit();
 
-            // optional UX: collapse all how-to after changes
             setOpenHowTo({});
-
             toast({title: "Plan updated", description: "Your weekly program was modified."});
         } finally {
             setModifying(false);
+        }
+    }
+
+    async function handleStartWorkout(day: ProgramDay) {
+        // If already active, just go to notebook
+        if (hasActiveWorkout) {
+            toast({title: "Workout in progress", description: "Resuming your active workout."});
+            router.push(ROUTES.notebook);
+            return;
+        }
+
+        if (day.rest || !day.exercises?.length) {
+            toast({title: "Rest day", description: "No workout scheduled for this day.", variant: "destructive"});
+            return;
+        }
+
+        setStartingDay(day.day);
+        try {
+            const payload = toActiveWorkoutDay(day);
+
+            const {data} = await postJson(API.startWorkout, {day: payload});
+
+            if (data?.error) {
+                toast({title: "Start workout", description: String(data.error), variant: "destructive"});
+                return;
+            }
+
+            setHasActiveWorkout(true);
+            toast({title: "Workout started", description: `Started ${day.day}. Redirecting to Notebook…`});
+
+            router.push(ROUTES.notebook);
+        } finally {
+            setStartingDay(null);
         }
     }
 
@@ -339,12 +415,11 @@ export default function TrainingPage() {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                         <h1 className="font-display text-2xl lg:text-3xl font-bold">AI Training Program</h1>
-                        <p className="text-muted-foreground mt-1">
-                            Loads your plan from database. Regenerate is available once per week.
-                        </p>
+                        <p className="text-muted-foreground mt-1">Loads your plan from database. Regenerate is available
+                            once per week.</p>
                     </div>
 
-                    {plan &&
+                    {plan && (
                         <Button onClick={handleGenerate} disabled={loading || generating} className="h-11">
                             {generating ? (
                                 <>
@@ -358,7 +433,7 @@ export default function TrainingPage() {
                                 </>
                             )}
                         </Button>
-                    }
+                    )}
                 </div>
 
                 {/* Loading */}
@@ -433,14 +508,12 @@ export default function TrainingPage() {
                         />
 
                         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                            <p className="text-xs text-muted-foreground">⚠️ Non-plan prompts → warning, then backend
-                                bans (5 min, doubles).</p>
+                            <p className="text-xs text-muted-foreground">
+                                ⚠️ Non-plan prompts → warning, then backend bans (5 min, doubles).
+                            </p>
 
-                            <Button
-                                onClick={handleModify}
-                                disabled={modifying || modsLeft <= 0 || promptTrimmed.length < 4}
-                                className="h-11"
-                            >
+                            <Button onClick={handleModify}
+                                    disabled={modifying || modsLeft <= 0 || promptTrimmed.length < 4} className="h-11">
                                 {modifying ? (
                                     <>
                                         <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
@@ -464,6 +537,8 @@ export default function TrainingPage() {
                             const isToday = day.day === today;
                             const expanded = expandedDay === day.day;
 
+                            const isStartingThisDay = startingDay === day.day;
+
                             return (
                                 <div
                                     key={day.day}
@@ -485,11 +560,7 @@ export default function TrainingPage() {
                                                 )}
                                             >
                                                 <Dumbbell
-                                                    className={cn(
-                                                        "h-6 w-6",
-                                                        day.rest ? "text-muted-foreground" : "text-primary-foreground"
-                                                    )}
-                                                />
+                                                    className={cn("h-6 w-6", day.rest ? "text-muted-foreground" : "text-primary-foreground")}/>
                                             </div>
 
                                             <div>
@@ -508,11 +579,8 @@ export default function TrainingPage() {
 
                                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                             <span>{day.rest ? "Rest" : `${day.exercises.length} exercises`}</span>
-                                            {expanded ? (
-                                                <ChevronUp className="h-5 w-5 text-muted-foreground"/>
-                                            ) : (
-                                                <ChevronDown className="h-5 w-5 text-muted-foreground"/>
-                                            )}
+                                            {expanded ? <ChevronUp className="h-5 w-5"/> :
+                                                <ChevronDown className="h-5 w-5"/>}
                                         </div>
                                     </button>
 
@@ -568,11 +636,8 @@ export default function TrainingPage() {
                                                                                             How to do
                                                                                             <span
                                                                                                 className="ml-2 inline-flex">
-                                                {open ? (
-                                                    <ChevronUp className="h-4 w-4"/>
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4"/>
-                                                )}
+                                                {open ? <ChevronUp className="h-4 w-4"/> :
+                                                    <ChevronDown className="h-4 w-4"/>}
                                               </span>
                                                                                         </Button>
                                                                                     )}
@@ -604,9 +669,7 @@ export default function TrainingPage() {
                                                                                     <p className="text-sm font-medium">How
                                                                                         to do it</p>
                                                                                     <span
-                                                                                        className="text-xs text-muted-foreground">
-                                            {steps.length} steps
-                                          </span>
+                                                                                        className="text-xs text-muted-foreground">{steps.length} steps</span>
                                                                                 </div>
 
                                                                                 <div className="mt-3 grid gap-2">
@@ -619,9 +682,7 @@ export default function TrainingPage() {
                                                   className="mt-0.5 h-6 w-6 shrink-0 rounded-md bg-background flex items-center justify-center text-xs font-semibold">
                                                 {i + 1}
                                               </span>
-                                                                                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                                                                                {s}
-                                                                                            </p>
+                                                                                            <p className="text-sm text-muted-foreground leading-relaxed">{s}</p>
                                                                                         </div>
                                                                                     ))}
                                                                                 </div>
@@ -636,8 +697,30 @@ export default function TrainingPage() {
                                                             className="mt-4 flex items-center justify-between pt-4 border-t border-border">
                                                             <p className="text-sm text-muted-foreground">Rest between
                                                                 sets: 60-90 seconds</p>
-                                                            <Button variant="outline" size="sm">
-                                                                Start This Workout
+
+                                                            <Button
+                                                                variant={hasActiveWorkout ? "outline" : "default"}
+                                                                size="sm"
+                                                                onClick={() => handleStartWorkout(day)}
+                                                                disabled={day.rest || isStartingThisDay}
+                                                            >
+                                                                {isStartingThisDay ? (
+                                                                    <>
+                                                                        <RefreshCw
+                                                                            className="mr-2 h-4 w-4 animate-spin"/>
+                                                                        Starting...
+                                                                    </>
+                                                                ) : hasActiveWorkout ? (
+                                                                    <>
+                                                                        <Play className="mr-2 h-4 w-4"/>
+                                                                        Resume Workout
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Play className="mr-2 h-4 w-4"/>
+                                                                        Start This Workout
+                                                                    </>
+                                                                )}
                                                             </Button>
                                                         </div>
                                                     </div>

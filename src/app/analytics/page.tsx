@@ -16,6 +16,21 @@ import {
 } from 'recharts';
 import {TrendingUp, TrendingDown, Scale, Flame, Dumbbell} from 'lucide-react';
 
+const DevNotice = () => (
+    <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
+        <div className="mt-0.5 h-2 w-2 rounded-full bg-warning animate-pulse"/>
+        <div>
+            <p className="text-sm font-medium text-warning">
+                This page is under active development
+            </p>
+            <p className="text-xs text-muted-foreground">
+                Data shown here is mock data and features may change or be incomplete.
+            </p>
+        </div>
+    </div>
+);
+
+
 const StatCard = ({
                       title,
                       value,
@@ -60,7 +75,7 @@ export default function Analytics() {
                         Track your fitness journey with detailed insights
                     </p>
                 </div>
-
+                <DevNotice/>
                 {/* Stats Grid */}
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <StatCard

@@ -2,9 +2,10 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import {cookies} from "next/headers";
-import {getUserDetails} from "../../../../utils/db-actions.js";
+import {startWorkout, getUserDetails} from "../../../../utils/db-actions.js";
 import {NextResponse} from "next/server";
 import {verifyToken} from "../../../../lib/auth/jwt.ts";
+
 
 export async function POST(req) {
     try {
@@ -19,26 +20,20 @@ export async function POST(req) {
         }
 
         const userId = payload.sub;
-        
-        const reqBody = await req?.json();
 
+        const reqBody = await req?.json();
         const user = await getUserDetails(userId);
 
-        const date = new Date(reqBody.date);
-        const diets = user?.diets;
-        let lastDiet;
-        diets.map((day) => {
-            if (date.getFullYear() === day.date.getFullYear() && date.getMonth() === day.date.getMonth() && date.getDate() === day.date.getDate()) {
-                lastDiet = day.history[day.history.length - 1].content;
-            }
-        });
-
-        if (lastDiet) {
-            return new Response(JSON.stringify({result: lastDiet}));
+        if (!user) {
+            return new Response(JSON.stringify({error: "Session error"}));
         }
 
-        return new Response(JSON.stringify({result: null}));
+        if (reqBody?.day) {
+            await startWorkout(userId, reqBody?.day);
+        }
+
+        return new Response(JSON.stringify({result: "Saved Successfully"}));
     } catch (error) {
-        return new Response(JSON.stringify({error: "Getting user data failed"}));
+        return new Response(JSON.stringify({error: "Saving Error"}));
     }
 }

@@ -31,7 +31,7 @@ export default function SignIn() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Accept: "application/json",
+                    "Accept": "application/json",
                 },
                 credentials: "include",
                 body: JSON.stringify({identifier: identifierToSend, password}),

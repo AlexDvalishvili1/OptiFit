@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {useEffect, useState} from "react";
 import {Button} from "@/components/ui/button";
+import Image from "next/image";
 
 const navItems = [
     {path: "/dashboard", icon: LayoutDashboard, label: "Dashboard"},
@@ -91,12 +92,27 @@ export function DashboardLayout({children}: { children: React.ReactNode }) {
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 glass-card border-b border-border">
                 <div className="flex h-full items-center justify-between px-4">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-                            <Dumbbell className="h-4 w-4 text-primary-foreground"/>
+                    <Link href="/" className="flex items-center gap-2">
+                        <div className="flex items-center justify-center rounded-lg">
+                            {/* Mobile */}
+                            <Image
+                                src="/logo_small.svg"
+                                alt="Logo Small"
+                                width={40}
+                                height={40}
+                                className="block md:hidden"
+                            />
+
+                            {/* Desktop */}
+                            <Image
+                                src="/logo.svg"
+                                alt="Logo"
+                                width={170}
+                                height={40}
+                                className="hidden md:block"
+                            />
                         </div>
-                        <span className="font-display text-lg font-bold">OptiFit</span>
-                    </div>
+                    </Link>
                     <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2">
                         {sidebarOpen ? <X className="h-6 w-6"/> : <Menu className="h-6 w-6"/>}
                     </button>
@@ -112,11 +128,29 @@ export function DashboardLayout({children}: { children: React.ReactNode }) {
             >
                 <div className="flex h-full flex-col">
                     {/* Logo */}
-                    <div className="hidden lg:flex h-16 items-center gap-2 px-6 border-b border-border">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                            <Dumbbell className="h-5 w-5 text-primary-foreground"/>
-                        </div>
-                        <span className="font-display text-xl font-bold">OptiFit</span>
+                    <div
+                        className="hidden lg:flex h-16 items-center gap-2 px-6 border-b border-border justify-center">
+                        <Link href="/" className="flex items-center gap-2">
+                            <div className="flex items-center justify-center rounded-lg">
+                                {/* Mobile */}
+                                <Image
+                                    src="/logo_small.svg"
+                                    alt="Logo Small"
+                                    width={40}
+                                    height={40}
+                                    className="block md:hidden"
+                                />
+
+                                {/* Desktop */}
+                                <Image
+                                    src="/logo.svg"
+                                    alt="Logo"
+                                    width={160}
+                                    height={30}
+                                    className="hidden md:block"
+                                />
+                            </div>
+                        </Link>
                     </div>
 
                     {/* User Info */}

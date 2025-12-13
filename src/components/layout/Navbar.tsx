@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {usePathname, useRouter} from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 type AuthUser = {
     id: string;
@@ -86,13 +87,29 @@ export function Navbar() {
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 glass-card">
             <div className="container mx-auto px-4">
-                <div className="flex h-16 items-center justify-between">
+                <div className="flex h-[76px] items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                            <Dumbbell className="h-5 w-5 text-primary-foreground"/>
+                        <div className="flex items-center justify-center rounded-lg">
+                            {/* Mobile */}
+                            <Image
+                                src="/logo_small.svg"
+                                alt="Logo Small"
+                                width={40}
+                                height={40}
+                                className="block md:hidden"
+                            />
+
+                            {/* Desktop */}
+                            <Image
+                                src="/logo.svg"
+                                alt="Logo"
+                                width={170}
+                                height={40}
+                                className="hidden md:block"
+                            />
                         </div>
-                        <span className="font-display text-xl font-bold">OptiFit</span>
                     </Link>
+
 
                     <div className="hidden md:flex items-center gap-6">
                         {loading ? null : !isAuthenticated ? (
