@@ -6,6 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Dumbbell, Mail, ArrowLeft, CheckCircle2} from 'lucide-react';
+import Image from "next/image";
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -35,10 +36,12 @@ export default function ForgotPassword() {
                 </Link>
 
                 <div className="flex items-center gap-2 mb-8">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                        <Dumbbell className="h-5 w-5 text-primary-foreground"/>
-                    </div>
-                    <span className="font-display text-2xl font-bold">OptiFit</span>
+                    <Image
+                        src="/logo.svg"
+                        alt="Logo"
+                        width={170}
+                        height={40}
+                    />
                 </div>
 
                 {!sent ? (

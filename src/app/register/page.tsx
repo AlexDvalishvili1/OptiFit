@@ -9,6 +9,7 @@ import {Dumbbell, Mail, Lock, User, ArrowLeft, Phone} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {useRouter} from "next/navigation";
 import {normalizePhone} from "@/hooks/normalize-phone.ts";
+import Image from "next/image";
 
 const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/;
 
@@ -111,10 +112,12 @@ export default function Register() {
                         <ArrowLeft className="h-4 w-4"/>Back to home
                     </Link>
                     <div className="flex items-center gap-2 mb-8">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                            <Dumbbell className="h-5 w-5 text-primary-foreground"/>
-                        </div>
-                        <span className="font-display text-2xl font-bold">OptiFit</span>
+                        <Image
+                            src="/logo.svg"
+                            alt="Logo"
+                            width={170}
+                            height={40}
+                        />
                     </div>
                     <h1 className="font-display text-2xl font-bold mb-2">Create your account</h1>
                     <p className="text-muted-foreground mb-8">Start your free trial today</p>

@@ -9,6 +9,7 @@ import {Dumbbell, Lock, ArrowLeft, Mail, Phone} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
 import {useRouter} from "next/navigation";
 import {normalizePhone} from "@/hooks/normalize-phone.ts";
+import Image from "next/image";
 
 export default function SignIn() {
     const [identifier, setIdentifier] = useState(""); // email OR phone
@@ -80,10 +81,12 @@ export default function SignIn() {
                     </Link>
 
                     <div className="flex items-center gap-2 mb-8">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                            <Dumbbell className="h-5 w-5 text-primary-foreground"/>
-                        </div>
-                        <span className="font-display text-2xl font-bold">OptiFit</span>
+                        <Image
+                            src="/logo.svg"
+                            alt="Logo"
+                            width={170}
+                            height={40}
+                        />
                     </div>
 
                     <h1 className="font-display text-2xl font-bold mb-2">Welcome back</h1>

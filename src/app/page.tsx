@@ -16,6 +16,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
+import Image from "next/image";
 
 const features = [
     {
@@ -283,10 +284,25 @@ export default function Landing() {
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-                                <Dumbbell className="h-4 w-4 text-primary-foreground"/>
+                            <div className="flex items-center justify-center rounded-lg">
+                                {/* Mobile */}
+                                <Image
+                                    src="/logo_small.svg"
+                                    alt="Logo Small"
+                                    width={40}
+                                    height={40}
+                                    className="block md:hidden"
+                                />
+
+                                {/* Desktop */}
+                                <Image
+                                    src="/logo.svg"
+                                    alt="Logo"
+                                    width={150}
+                                    height={40}
+                                    className="hidden md:block"
+                                />
                             </div>
-                            <span className="font-display text-lg font-bold">OptiFit</span>
                         </div>
 
                         <div className="flex items-center gap-6 text-sm">
