@@ -14,7 +14,7 @@ export async function GET() {
         const userId = payload.sub;
 
         await connectDB();
-        const user = await User.findById(userId).select("_id name email phone").lean();
+        const user = await User.findById(userId).select("_id name email phone advanced gender dob height weight activity goal allergies").lean();
 
         if (!user) return NextResponse.json({user: null}, {status: 200});
 
@@ -22,9 +22,21 @@ export async function GET() {
             {
                 user: {
                     id: user._id.toString(),
-                    name: user.name,
+                    name: user.name ?? "",
                     email: user.email,
                     phone: user.phone,
+
+                    // advanced state
+                    advanced: !!user.advanced,
+
+                    // profile fields
+                    gender: user.gender ?? null,
+                    dob: user.dob ? user.dob.toISOString() : null,
+                    height: typeof user.height === "number" ? user.height : null,
+                    weight: typeof user.weight === "number" ? user.weight : null,
+                    activity: user.activity ?? null,
+                    goal: user.goal ?? null,
+                    allergies: Array.isArray(user.allergies) ? user.allergies : [],
                 },
             },
             {status: 200}

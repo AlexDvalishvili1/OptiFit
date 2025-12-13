@@ -86,8 +86,12 @@ export default function Register() {
             return;
         }
 
-        toast({title: 'Account created!', description: 'Welcome to OptiFit. Let\'s set up your profile.'});
-        router.push('/dashboard');
+        toast({
+            variant: "success",
+            title: 'Account created!',
+            description: 'Welcome to OptiFit. Let\'s set up your profile.'
+        });
+        router.push('/profile');
         setLoading(false);
     };
 
