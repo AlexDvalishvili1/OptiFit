@@ -21,8 +21,8 @@ import {Button} from "@/components/ui/button";
 
 const navItems = [
     {path: "/dashboard", icon: LayoutDashboard, label: "Dashboard"},
-    {path: "/training", icon: Dumbbell, label: "Training Program"},
     {path: "/diet", icon: Utensils, label: "Diet Plan"},
+    {path: "/training", icon: Dumbbell, label: "Training Program"},
     {path: "/notebook", icon: NotebookPen, label: "Workout Notebook"},
     {path: "/history", icon: History, label: "History"},
     {path: "/analytics", icon: BarChart3, label: "Analytics"},

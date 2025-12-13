@@ -8,7 +8,7 @@ export type JwtPayload = {
 };
 
 export async function signToken(payload: JwtPayload) {
-    const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+    const expiresIn = "365d";
 
     return new SignJWT(payload)
         .setProtectedHeader({alg: "HS256"})
