@@ -28,8 +28,10 @@ import {
 } from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {useRouter} from "next/navigation";
+import {useTheme} from "@/components/providers/ThemeProvider.tsx";
 
 export default function Page() {
+    const {isDark, setTheme, mounted} = useTheme();
     const [darkMode, setDarkMode] = useState(false);
     const [notifications, setNotifications] = useState(true);
     const [emailUpdates, setEmailUpdates] = useState(true);
@@ -93,9 +95,9 @@ export default function Page() {
                             </p>
                         </div>
                         <Switch
-                            id="dark-mode"
-                            checked={darkMode}
-                            onCheckedChange={handleDarkModeToggle}
+                            checked={mounted ? isDark : false}
+                            onCheckedChange={(enabled) => setTheme(enabled ? "dark" : "light")}
+                            disabled={!mounted}
                         />
                     </div>
                 </div>
