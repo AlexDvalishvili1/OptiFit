@@ -1,24 +1,15 @@
-// src/app/profile/page.tsx
-
 "use client";
 
 import {useEffect, useState} from "react";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Badge} from "@/components/ui/badge";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
-import {Checkbox} from "@/components/ui/checkbox";
-import {User as UserIcon, Save, X, ChevronDown} from "lucide-react";
+import {Save} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
+
+import {ProfileHeader} from "@/components/pages/profile/ProfileHeader";
+import {AvatarCard} from "@/components/pages/profile/AvatarCard";
+import {PersonalInfoSection} from "@/components/pages/profile/PersonalInfoSection";
+import {FitnessPreferencesSection} from "@/components/pages/profile/FitnessPreferencesSection";
 
 const ALLERGY_OPTIONS = [
     "Lactose", "Gluten", "Peanuts", "Tree Nuts", "Shellfish", "Fish", "Soy", "Eggs",
@@ -39,9 +30,8 @@ type MeUser = {
     name?: string;
     email: string;
     phone: string;
-    // optional fields you may return from /me (recommended)
     gender?: "male" | "female";
-    dob?: string; // ISO
+    dob?: string;
     height?: number;
     weight?: number;
     activity?: string;
@@ -62,12 +52,12 @@ export default function Profile() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
-        gender: undefined,
+        gender: undefined as undefined | "male" | "female",
         dateOfBirth: "", // yyyy-mm-dd
         height: 0,
         weight: 0,
-        activityLevel: undefined,
-        fitnessGoal: undefined,
+        activityLevel: undefined as string | undefined,
+        fitnessGoal: undefined as string | undefined,
         allergies: [] as string[],
     });
 
@@ -132,14 +122,12 @@ export default function Profile() {
         setLoading(true);
 
         try {
-            // send to your profile update API (see route below)
             const res = await fetch("/api/profile", {
                 method: "PATCH",
                 headers: {"Content-Type": "application/json", Accept: "application/json"},
                 credentials: "include",
                 body: JSON.stringify({
                     name: formData.name.trim(),
-                    // usually you don't allow changing email here, but keeping since your UI has it
                     email: formData.email.trim().toLowerCase(),
                     gender: formData.gender,
                     dob: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
@@ -168,7 +156,6 @@ export default function Profile() {
                 description: "Your profile has been saved successfully.",
             });
 
-            // refresh /me in memory (optional)
             setMe(json.user ?? me);
         } catch {
             toast({
@@ -184,206 +171,31 @@ export default function Profile() {
     return (
         <DashboardLayout>
             <div className="max-w-2xl mx-auto space-y-8">
-                {/* Header */}
-                <div>
-                    <h1 className="font-display text-2xl lg:text-3xl font-bold">Profile Settings</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Update your personal information and fitness preferences
-                    </p>
-                </div>
+                <ProfileHeader/>
 
-                {/* Avatar Section */}
-                <div className="flex items-center gap-6 p-6 rounded-2xl bg-card border border-border">
-                    <div className="h-24 w-24 rounded-full gradient-primary flex items-center justify-center">
-            <span className="font-display text-3xl font-bold text-primary-foreground">
-              {(formData.name?.charAt(0) || "U").toUpperCase()}
-            </span>
-                    </div>
-                    <div>
-                        <h2 className="font-display text-lg font-semibold">
-                            {loadingMe ? "Loading..." : formData.name || "User"}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            {loadingMe ? "" : formData.email || "user@example.com"}
-                        </p>
-                    </div>
-                </div>
+                <AvatarCard
+                    loadingMe={loadingMe}
+                    name={formData.name}
+                    email={formData.email}
+                />
 
-                {/* Profile Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="p-6 rounded-2xl bg-card border border-border space-y-6">
-                        <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                            <UserIcon className="h-5 w-5"/>
-                            Personal Information
-                        </h3>
+                    <PersonalInfoSection formData={formData} onChange={handleChange}/>
 
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input
-                                    id="name"
-                                    value={formData.name}
-                                    onChange={(e) => handleChange("name", e.target.value)}
-                                    placeholder="John Doe"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => handleChange("email", e.target.value)}
-                                    placeholder="john@example.com"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="gender">Gender</Label>
-                                <Select value={formData.gender} onValueChange={(v) => handleChange("gender", v)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select gender"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="male">Male</SelectItem>
-                                        <SelectItem value="female">Female</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="dob">Date of Birth</Label>
-                                <Input
-                                    id="dob"
-                                    type="date"
-                                    value={formData.dateOfBirth}
-                                    onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="height">Height (cm)</Label>
-                                <Input
-                                    id="height"
-                                    type="number"
-                                    value={formData.height}
-                                    onChange={(e) => handleChange("height", Number(e.target.value))}
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="weight">Weight (kg)</Label>
-                                <Input
-                                    id="weight"
-                                    type="number"
-                                    value={formData.weight}
-                                    onChange={(e) => handleChange("weight", Number(e.target.value))}
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-6 rounded-2xl bg-card border border-border space-y-6">
-                        <h3 className="font-display text-lg font-semibold">Fitness Preferences</h3>
-
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="activity">Activity Level</Label>
-                                <Select
-                                    value={formData.activityLevel}
-                                    onValueChange={(v) => handleChange("activityLevel", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select activity level"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ACTIVITY_LEVELS.map((level) => (
-                                            <SelectItem key={level.value} value={level.value}>
-                                                {level.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="goal">Fitness Goal</Label>
-                                <Select
-                                    value={formData.fitnessGoal}
-                                    onValueChange={(v) => handleChange("fitnessGoal", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select goal"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="lose weight">Lose Weight</SelectItem>
-                                        <SelectItem value="maintain">Maintain Weight</SelectItem>
-                                        <SelectItem value="build muscle">Build Muscle</SelectItem>
-                                        <SelectItem value="improve endurance">Improve Endurance</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="sm:col-span-2 space-y-3">
-                                <Label>Food Allergies</Label>
-
-                                {formData.allergies.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                        {formData.allergies.map((allergy) => (
-                                            <Badge
-                                                key={allergy}
-                                                variant="secondary"
-                                                className="pl-2 pr-1 py-1 flex items-center gap-1"
-                                            >
-                                                {allergy}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeAllergy(allergy)}
-                                                    className="h-4 w-4 rounded-full hover:bg-muted-foreground/20 flex items-center justify-center"
-                                                >
-                                                    <X className="h-3 w-3"/>
-                                                </button>
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <Popover open={allergyPopoverOpen} onOpenChange={setAllergyPopoverOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button type="button" variant="outline" className="w-full justify-between">
-                      <span className="text-muted-foreground">
-                        {formData.allergies.length === 0
-                            ? "Select allergies..."
-                            : `${formData.allergies.length} selected`}
-                      </span>
-                                            <ChevronDown className="h-4 w-4 opacity-50"/>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80 p-0" align="start">
-                                        <div className="max-h-64 overflow-y-auto p-2">
-                                            <div className="grid grid-cols-2 gap-1">
-                                                {ALLERGY_OPTIONS.map((allergy) => (
-                                                    <label
-                                                        key={allergy}
-                                                        className="flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm"
-                                                    >
-                                                        <Checkbox
-                                                            checked={formData.allergies.includes(allergy)}
-                                                            onCheckedChange={() => toggleAllergy(allergy)}
-                                                        />
-                                                        {allergy}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        </div>
-                    </div>
+                    <FitnessPreferencesSection
+                        activityLevels={ACTIVITY_LEVELS}
+                        allergyOptions={ALLERGY_OPTIONS}
+                        allergyPopoverOpen={allergyPopoverOpen}
+                        setAllergyPopoverOpen={setAllergyPopoverOpen}
+                        formData={{
+                            activityLevel: formData.activityLevel,
+                            fitnessGoal: formData.fitnessGoal,
+                            allergies: formData.allergies,
+                        }}
+                        onChange={handleChange}
+                        toggleAllergy={toggleAllergy}
+                        removeAllergy={removeAllergy}
+                    />
 
                     <div className="flex justify-end">
                         <Button type="submit" size="lg" disabled={loading}>

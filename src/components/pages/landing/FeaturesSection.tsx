@@ -1,8 +1,14 @@
+// src/components/pages/landing/FeaturesSection.tsx
+
 import {cn} from "@/lib/utils";
 
 export default function FeaturesSection({refEl, visible, features}) {
     return (
-        <section ref={refEl} id="features" className="py-20 lg:py-32 bg-card">
+        <section
+            ref={refEl}
+            id="features"
+            className="py-20 lg:py-32 bg-card scroll-mt-[88px]"
+        >
             <div className="container mx-auto px-4">
                 <div
                     className={cn(

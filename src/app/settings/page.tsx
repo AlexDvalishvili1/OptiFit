@@ -39,15 +39,6 @@ export default function Page() {
     const router = useRouter();
     const {toast} = useToast();
 
-    const handleDarkModeToggle = (enabled: boolean) => {
-        setDarkMode(enabled);
-        if (enabled) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    };
-
     const handleDeleteAccount = () => {
         // TODO: Call API to delete account
         // DELETE /api/user/delete
