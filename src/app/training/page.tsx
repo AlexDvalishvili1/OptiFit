@@ -4,71 +4,16 @@ import * as React from "react";
 import {useRouter} from "next/navigation";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {useToast} from "@/hooks/use-toast";
-import type {ProgramDay, ProgramWeek, ActiveWorkoutDay} from "@/components/pages/training/types.ts";
+import type {ProgramDay, ProgramWeek} from "@/components/pages/training/types.ts";
 import TrainingHeader from "@/components/pages/training/TrainingHeader";
 import TrainingEmptyState from "@/components/pages/training/TrainingEmptyState";
 import TrainingModifyCard from "@/components/pages/training/TrainingModifyCard";
 import TrainingDayCard from "@/components/pages/training/TrainingDayCard";
-
-function isValidProgramWeek(x): x is ProgramWeek {
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    if (!Array.isArray(x) || x.length !== 7) return false;
-    for (const d of x) {
-        if (!d || typeof d !== "object") return false;
-        if (typeof d.day !== "string") return false;
-        if (typeof d.rest !== "boolean") return false;
-        if (typeof d.muscles !== "string") return false;
-        if (!Array.isArray(d.exercises)) return false;
-        for (const e of d.exercises) {
-            if (!e || typeof e !== "object") return false;
-            if (typeof e.name !== "string") return false;
-            if (typeof e.sets !== "string") return false;
-            if (typeof e.reps !== "string") return false;
-            if (typeof e.instructions !== "string") return false;
-            if (typeof e.video !== "string") return false;
-        }
-    }
-    const set = new Set(x.map((d) => d.day));
-    return days.every((d) => set.has(d));
-}
-
-function normalizeWeek(raw): ProgramWeek | null {
-    const normalized = Array.isArray(raw) && raw.length === 1 && Array.isArray(raw[0]) ? raw[0] : raw;
-    return isValidProgramWeek(normalized) ? (normalized as ProgramWeek) : null;
-}
-
-function todayWeekday() {
-    return new Date().toLocaleDateString("en-US", {weekday: "long"});
-}
-
-function todayISODateKey() {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-}
-
-const LS_KEYS = {modCount: (dayKey: string) => `optifit_training_mods_${dayKey}`};
-
-function getLocalNumber(key: string, fallback = 0) {
-    try {
-        const v = localStorage.getItem(key);
-        if (!v) return fallback;
-        const n = Number(v);
-        return Number.isFinite(n) ? n : fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-function setLocalNumber(key: string, n: number) {
-    try {
-        localStorage.setItem(key, String(n));
-    } catch {
-        return false;
-    }
-}
+import {postJson} from "@/lib/api/postJson";
+import {normalizeWeek, todayWeekday} from "@/lib/pages/training/plan.ts";
+import {getLocalNumber, LS_KEYS, setLocalNumber, todayISODateKey} from "@/lib/pages/training/storage.ts";
+import {toActiveWorkoutDay} from "@/lib/pages/training/transform.ts";
+import {parseJsonSafe} from "@/lib/api/parseJsonSafe.ts";
 
 const API = {
     getTraining: "/api/workout/plan/get",
@@ -79,16 +24,17 @@ const API = {
 
 const ROUTES = {notebook: "/notebook"};
 
-function toActiveWorkoutDay(day: ProgramDay): ActiveWorkoutDay {
-    return {
-        day: day.day,
-        muscles: day.muscles,
-        rest: day.rest,
-        exercises: (day.exercises || []).map((ex) => {
-            const setsCount = Math.max(1, Number(ex.sets) || 1);
-            return {name: ex.name, data: Array.from({length: setsCount}).map(() => ({weight: 0, reps: 0}))};
-        }),
-    };
+type ApiResp = { result?: unknown; error?: unknown };
+type EmptyObj = Record<string, never>;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isObject(v: unknown): v is UnknownRecord {
+    return typeof v === "object" && v !== null;
+}
+
+function get(obj: unknown, key: string): unknown {
+    return isObject(obj) ? obj[key] : undefined;
 }
 
 export default function TrainingPage() {
@@ -97,7 +43,7 @@ export default function TrainingPage() {
 
     const [loading, setLoading] = React.useState(true);
     const [plan, setPlan] = React.useState<ProgramWeek | null>(null);
-    const [rawPlan, setRawPlan] = React.useState<string | null>(null);
+    const [rawPlan, setRawPlan] = React.useState<unknown>(null);
 
     const [expandedDay, setExpandedDay] = React.useState<string | null>(todayWeekday());
     const [generating, setGenerating] = React.useState(false);
@@ -127,36 +73,21 @@ export default function TrainingPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function postJson(url: string, body?) {
-        const res = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: {"Content-Type": "application/json"},
-            body: body ? JSON.stringify(body) : undefined,
-        });
-
-        let data = null;
-        try {
-            data = await res.json();
-        } catch {
-            data = null;
-        }
-        return {res, data};
-    }
-
     async function loadTraining() {
         setLoading(true);
         try {
-            const {data} = await postJson(API.getTraining);
-            if (data?.error) {
-                toast({title: "Training", description: String(data.error), variant: "destructive"});
+            const {data} = await postJson<ApiResp, EmptyObj>(API.getTraining, {});
+            const err = get(data, "error");
+            if (err != null) {
+                toast({title: "Training", description: String(err), variant: "destructive"});
                 setPlan(null);
                 setRawPlan(null);
                 return;
             }
 
-            const raw = data?.result ?? null;
+            const raw = get(data, "result") ?? null;
             setRawPlan(raw);
+
             if (!raw) {
                 setPlan(null);
                 return;
@@ -172,6 +103,7 @@ export default function TrainingPage() {
                 setPlan(null);
                 return;
             }
+
             setPlan(parsed);
         } finally {
             setLoading(false);
@@ -179,28 +111,30 @@ export default function TrainingPage() {
     }
 
     async function loadActiveWorkoutFlag() {
-        const {data} = await postJson(API.getActiveWorkout);
-        if (data?.error) return;
-        setHasActiveWorkout(!!data?.result);
+        const {data} = await postJson<ApiResp, EmptyObj>(API.getActiveWorkout, {});
+        const err = get(data, "error");
+        if (err != null) return;
+        setHasActiveWorkout(Boolean(get(data, "result")));
     }
 
     React.useEffect(() => {
-        loadTraining();
-        loadActiveWorkoutFlag();
+        void loadTraining();
+        void loadActiveWorkoutFlag();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function handleGenerate() {
         setGenerating(true);
         try {
-            const {data} = await postJson(API.aiTraining, {regenerate: true});
-            if (data?.error) {
-                toast({title: "Training", description: String(data.error), variant: "destructive"});
+            const {data} = await postJson<ApiResp, { regenerate: boolean }>(API.aiTraining, {regenerate: true});
+            const err = get(data, "error");
+            if (err != null) {
+                toast({title: "Training", description: String(err), variant: "destructive"});
                 return;
             }
 
-            const raw = data?.result;
-            if (!raw) {
+            const raw = get(data, "result");
+            if (raw == null) {
                 toast({
                     title: "Backend response issue",
                     description: "AI route must return { result: <JSON> }.",
@@ -209,19 +143,13 @@ export default function TrainingPage() {
                 return;
             }
 
-            let parsed = null;
-            try {
-                parsed = JSON.parse(raw);
-            } catch {
-                parsed = null;
-            }
-
+            const parsed = typeof raw === "string" ? parseJsonSafe(raw) : raw;
             const week = normalizeWeek(parsed);
             if (!week) {
                 toast({
                     title: "AI JSON invalid",
                     description: "AI returned invalid JSON structure.",
-                    variant: "destructive"
+                    variant: "destructive",
                 });
                 return;
             }
@@ -258,14 +186,15 @@ export default function TrainingPage() {
 
         setModifying(true);
         try {
-            const {data} = await postJson(API.aiTraining, {modifying: promptTrimmed});
-            if (data?.error) {
-                toast({title: "Training", description: String(data.error), variant: "destructive"});
+            const {data} = await postJson<ApiResp, { modifying: string }>(API.aiTraining, {modifying: promptTrimmed});
+            const err = get(data, "error");
+            if (err != null) {
+                toast({title: "Training", description: String(err), variant: "destructive"});
                 return;
             }
 
-            const raw = data?.result;
-            if (!raw) {
+            const raw = get(data, "result");
+            if (raw == null) {
                 toast({
                     title: "Backend response issue",
                     description: "AI route must return { result: <JSON> }.",
@@ -274,19 +203,13 @@ export default function TrainingPage() {
                 return;
             }
 
-            let parsed = null;
-            try {
-                parsed = JSON.parse(raw);
-            } catch {
-                parsed = null;
-            }
-
+            const parsed = typeof raw === "string" ? parseJsonSafe(raw) : raw;
             const week = normalizeWeek(parsed);
             if (!week) {
                 toast({
                     title: "AI JSON invalid",
                     description: "AI returned invalid JSON structure.",
-                    variant: "destructive"
+                    variant: "destructive",
                 });
                 return;
             }
@@ -321,10 +244,13 @@ export default function TrainingPage() {
         setStartingDay(day.day);
         try {
             const payload = toActiveWorkoutDay(day);
-            const {data} = await postJson(API.startWorkout, {day: payload});
+            const {data} = await postJson<ApiResp, { day: ReturnType<typeof toActiveWorkoutDay> }>(API.startWorkout, {
+                day: payload,
+            });
 
-            if (data?.error) {
-                toast({title: "Start workout", description: String(data.error), variant: "destructive"});
+            const err = get(data, "error");
+            if (err != null) {
+                toast({title: "Start workout", description: String(err), variant: "destructive"});
                 return;
             }
 
@@ -341,12 +267,7 @@ export default function TrainingPage() {
     return (
         <DashboardLayout>
             <div className="space-y-8">
-                <TrainingHeader
-                    hasPlan={!!plan}
-                    loading={loading}
-                    generating={generating}
-                    onGenerate={handleGenerate}
-                />
+                <TrainingHeader hasPlan={!!plan} loading={loading} generating={generating} onGenerate={handleGenerate}/>
 
                 {loading && (
                     <div className="p-8 rounded-2xl bg-card border border-border">
@@ -389,7 +310,7 @@ export default function TrainingPage() {
                                     onToggleHowTo={toggleHowTo}
                                     hasActiveWorkout={hasActiveWorkout}
                                     isStartingThisDay={isStartingThisDay}
-                                    onStartWorkout={() => handleStartWorkout(day)}
+                                    onStartWorkout={() => void handleStartWorkout(day)}
                                 />
                             );
                         })}

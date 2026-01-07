@@ -1,21 +1,46 @@
 "use client";
 
+import * as React from "react";
 import {useEffect, useState} from "react";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {Button} from "@/components/ui/button";
 import {Save} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
-
 import {ProfileHeader} from "@/components/pages/profile/ProfileHeader";
 import {AvatarCard} from "@/components/pages/profile/AvatarCard";
 import {PersonalInfoSection} from "@/components/pages/profile/PersonalInfoSection";
 import {FitnessPreferencesSection} from "@/components/pages/profile/FitnessPreferencesSection";
+import {readJsonSafe} from "@/lib/api/readJsonSafe";
+import type {MeUser, ProfileFormData} from "@/lib/pages/profile/types.ts";
+import {formDataToPatchPayload, userToFormData} from "@/lib/pages/profile/mappers.ts";
 
 const ALLERGY_OPTIONS = [
-    "Lactose", "Gluten", "Peanuts", "Tree Nuts", "Shellfish", "Fish", "Soy", "Eggs",
-    "Wheat", "Sesame", "Corn", "Mustard", "Celery", "Sulphites", "Lupin", "Mollusks",
-    "Legumes", "Fruit", "Vegetables", "Garlic", "Onion", "Gelatin", "Meat", "Spices",
-    "Chocolate", "Yeast",
+    "Lactose",
+    "Gluten",
+    "Peanuts",
+    "Tree Nuts",
+    "Shellfish",
+    "Fish",
+    "Soy",
+    "Eggs",
+    "Wheat",
+    "Sesame",
+    "Corn",
+    "Mustard",
+    "Celery",
+    "Sulphites",
+    "Lupin",
+    "Mollusks",
+    "Legumes",
+    "Fruit",
+    "Vegetables",
+    "Garlic",
+    "Onion",
+    "Gelatin",
+    "Meat",
+    "Spices",
+    "Chocolate",
+    "Yeast",
 ];
 
 const ACTIVITY_LEVELS = [
@@ -25,20 +50,42 @@ const ACTIVITY_LEVELS = [
     {value: "very_active", label: "Very Active — intense exercise 6–7 times per week"},
 ];
 
-type MeUser = {
-    id: string;
-    name?: string;
-    email: string;
-    phone: string;
-    gender?: "male" | "female";
-    dob?: string;
-    height?: number;
-    weight?: number;
-    activity?: string;
-    goal?: string;
-    allergies?: string[];
-    advanced?: boolean;
-} | null;
+const DEFAULT_FORM: ProfileFormData = {
+    name: "",
+    email: "",
+    gender: undefined,
+    dateOfBirth: "",
+    height: 0,
+    weight: 0,
+    activityLevel: undefined,
+    fitnessGoal: undefined,
+    allergies: [],
+};
+
+type ApiMeResp = { user?: unknown; result?: unknown; error?: unknown };
+type ApiProfileResp = { user?: unknown; result?: unknown; error?: unknown };
+
+type UnknownRecord = Record<string, unknown>;
+
+function isObject(v: unknown): v is UnknownRecord {
+    return typeof v === "object" && v !== null;
+}
+
+function get(obj: unknown, key: string): unknown {
+    return isObject(obj) ? obj[key] : undefined;
+}
+
+// Minimal guard so TS allows userToFormData(user, prev)
+function isMeUser(v: unknown): v is Exclude<MeUser, null> {
+    if (!isObject(v)) return false;
+
+    // Require the stable “identity” fields you showed in your MeUser type
+    const id = v.id;
+    const email = v.email;
+    const phone = v.phone;
+
+    return typeof id === "string" && typeof email === "string" && typeof phone === "string";
+}
 
 export default function Profile() {
     const {toast} = useToast();
@@ -48,20 +95,8 @@ export default function Profile() {
     const [allergyPopoverOpen, setAllergyPopoverOpen] = useState(false);
 
     const [me, setMe] = useState<MeUser>(null);
+    const [formData, setFormData] = useState<ProfileFormData>(DEFAULT_FORM);
 
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        gender: undefined as undefined | "male" | "female",
-        dateOfBirth: "", // yyyy-mm-dd
-        height: 0,
-        weight: 0,
-        activityLevel: undefined as string | undefined,
-        fitnessGoal: undefined as string | undefined,
-        allergies: [] as string[],
-    });
-
-    // Load profile from your API
     useEffect(() => {
         let cancelled = false;
 
@@ -69,24 +104,16 @@ export default function Profile() {
             setLoadingMe(true);
             try {
                 const res = await fetch("/api/auth/me", {credentials: "include"});
-                const json = await res.json().catch(() => ({}));
+                const json = (await readJsonSafe(res)) as ApiMeResp;
 
-                const user = json.user;
-                if (!cancelled) setMe(user);
+                const userUnknown = get(json, "user") ?? get(json, "result") ?? null;
 
-                if (!cancelled && user) {
-                    setFormData((prev) => ({
-                        ...prev,
-                        name: user.name ?? "",
-                        email: user.email ?? "",
-                        gender: (user.gender) ?? undefined,
-                        dateOfBirth: user.dob ? String(user.dob).slice(0, 10) : "",
-                        height: typeof user.height === "number" ? user.height : prev.height,
-                        weight: typeof user.weight === "number" ? user.weight : prev.weight,
-                        activityLevel: (user.activity) ?? prev.activityLevel,
-                        fitnessGoal: (user.goal) ?? prev.fitnessGoal,
-                        allergies: Array.isArray(user.allergies) ? user.allergies : prev.allergies,
-                    }));
+                if (!cancelled) {
+                    setMe(isMeUser(userUnknown) ? userUnknown : null);
+                }
+
+                if (!cancelled && isMeUser(userUnknown)) {
+                    setFormData((prev) => userToFormData(userUnknown, prev));
                 }
             } catch {
                 if (!cancelled) setMe(null);
@@ -100,21 +127,21 @@ export default function Profile() {
         };
     }, []);
 
-    const handleChange = (field: string, value) => {
+    const handleChange = <K extends keyof ProfileFormData>(field: K, value: ProfileFormData[K]) => {
         setFormData((prev) => ({...prev, [field]: value}));
     };
 
     const toggleAllergy = (allergy: string) => {
         const current = formData.allergies;
-        const next = current.includes(allergy)
-            ? current.filter((a) => a !== allergy)
-            : [...current, allergy];
-
+        const next = current.includes(allergy) ? current.filter((a) => a !== allergy) : [...current, allergy];
         handleChange("allergies", next);
     };
 
     const removeAllergy = (allergy: string) => {
-        handleChange("allergies", formData.allergies.filter((a) => a !== allergy));
+        handleChange(
+            "allergies",
+            formData.allergies.filter((a) => a !== allergy)
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -126,26 +153,17 @@ export default function Profile() {
                 method: "PATCH",
                 headers: {"Content-Type": "application/json", Accept: "application/json"},
                 credentials: "include",
-                body: JSON.stringify({
-                    name: formData.name.trim(),
-                    email: formData.email.trim().toLowerCase(),
-                    gender: formData.gender,
-                    dob: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
-                    height: Number(formData.height),
-                    weight: Number(formData.weight),
-                    activity: formData.activityLevel,
-                    goal: formData.fitnessGoal,
-                    allergies: formData.allergies,
-                }),
+                body: JSON.stringify(formDataToPatchPayload(formData)),
             });
 
-            const json = await res.json().catch(() => ({}));
+            const json = (await readJsonSafe(res)) as ApiProfileResp;
 
+            const err = get(json, "error");
             if (!res.ok) {
                 toast({
                     variant: "destructive",
                     title: "Profile update failed",
-                    description: json?.error || "Something went wrong",
+                    description: err ? String(err) : "Something went wrong",
                 });
                 return;
             }
@@ -156,7 +174,8 @@ export default function Profile() {
                 description: "Your profile has been saved successfully.",
             });
 
-            setMe(json.user ?? me);
+            const userUnknown = get(json, "user") ?? get(json, "result") ?? null;
+            setMe(isMeUser(userUnknown) ? userUnknown : me);
         } catch {
             toast({
                 variant: "destructive",
@@ -173,11 +192,7 @@ export default function Profile() {
             <div className="max-w-2xl mx-auto space-y-8">
                 <ProfileHeader/>
 
-                <AvatarCard
-                    loadingMe={loadingMe}
-                    name={formData.name}
-                    email={formData.email}
-                />
+                <AvatarCard loadingMe={loadingMe} name={formData.name} email={formData.email}/>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <PersonalInfoSection formData={formData} onChange={handleChange}/>

@@ -1,73 +1,44 @@
-// src/app/history/page.tsx
-
 "use client";
 
 import * as React from "react";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
-import {Input} from "@/components/ui/input";
 import {useToast} from "@/hooks/use-toast";
-import {cn} from "@/lib/utils";
-import {Calendar, Clock, Dumbbell, ChevronRight, Search, X} from "lucide-react";
+
 import HistoryHeader from "@/components/pages/history/HistoryHeader";
 import HistorySearch from "@/components/pages/history/HistorySearch";
 import HistoryEmpty from "@/components/pages/history/HistoryEmpty";
 import HistoryWorkoutCard from "@/components/pages/history/HistoryWorkoutCard";
 
-type WorkoutSetData = {
-    weight: number;
-    reps: number;
-};
+import {postJson} from "@/lib/api/postJson";
+import type {HistoryItem} from "@/lib/pages/history/types.ts";
+import {formatDate, formatDuration} from "@/lib/pages/history/format.ts";
+import {getTotalSets, getTotalVolume} from "@/lib/pages/history/stats.ts";
 
-type HistoryExercise = {
-    name: string;
-    data: WorkoutSetData[];
-};
-
-type HistoryWorkoutDay = {
-    day: string;
-    muscles: string;
-    rest: boolean;
-    exercises: HistoryExercise[];
-};
-
-type HistoryItem = {
-    date: string; // ISO date/time
-    active?: boolean;
-    timer?: number; // seconds
-    workout: HistoryWorkoutDay;
-};
-
-// ✅ UPDATE THIS ROUTE TO MATCH YOUR APP ROUTE
 const API = {
     getHistory: "/api/workout/get/history",
 };
 
-function formatDate(dateString: string) {
-    const d = new Date(dateString);
-    if (Number.isNaN(d.getTime())) return String(dateString);
-    return d.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+type ApiResp = { result?: unknown; error?: unknown };
+type EmptyObj = Record<string, never>;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isObject(v: unknown): v is UnknownRecord {
+    return typeof v === "object" && v !== null;
+}
+
+function get(obj: unknown, key: string): unknown {
+    return isObject(obj) ? obj[key] : undefined;
+}
+
+function isHistoryItemArray(v: unknown): v is HistoryItem[] {
+    if (!Array.isArray(v)) return false;
+
+    // Lightweight structural check (keeps UI safe without being too strict)
+    return v.every((x) => {
+        if (!isObject(x)) return false;
+        return typeof x.date === "string" || x.date instanceof Date; // depending on your app
     });
-}
-
-function formatDuration(timerSeconds?: number) {
-    if (!timerSeconds || timerSeconds <= 0) return null;
-    const mins = Math.round(timerSeconds / 60);
-    return `${mins} min`;
-}
-
-function getTotalVolume(exercises: HistoryExercise[]) {
-    return exercises.reduce((total, ex) => {
-        const v = ex.data.reduce((s, set) => s + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0);
-        return total + v;
-    }, 0);
-}
-
-function getTotalSets(exercises: HistoryExercise[]) {
-    return exercises.reduce((total, ex) => total + (ex.data?.length || 0), 0);
 }
 
 export default function HistoryPage() {
@@ -78,36 +49,22 @@ export default function HistoryPage() {
     const [selectedIdx, setSelectedIdx] = React.useState<number | null>(null);
     const [searchQuery, setSearchQuery] = React.useState("");
 
-    async function postJson(url: string) {
-        const res = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: {"Content-Type": "application/json"},
-        });
-
-        let data = null;
-        try {
-            data = await res.json();
-        } catch {
-            data = null;
-        }
-        return {res, data};
-    }
-
     async function loadHistory() {
         setLoading(true);
         try {
-            const {data} = await postJson(API.getHistory);
+            const {data} = await postJson<ApiResp, EmptyObj>(API.getHistory, {});
 
-            if (data?.error) {
-                toast({title: "History", description: String(data.error), variant: "destructive"});
+            const err = get(data, "error");
+            if (err != null) {
+                toast({title: "History", description: String(err), variant: "destructive"});
                 setHistory([]);
                 return;
             }
 
-            const items = Array.isArray(data?.result) ? (data.result as HistoryItem[]) : [];
-            // filter out active sessions (optional)
-            const filtered = items.filter((x) => !x?.active);
+            const result = get(data, "result");
+            const items: HistoryItem[] = isHistoryItemArray(result) ? result : [];
+
+            const filtered = items.filter((x) => x.active !== true);
             setHistory(filtered);
         } finally {
             setLoading(false);
@@ -115,18 +72,22 @@ export default function HistoryPage() {
     }
 
     React.useEffect(() => {
-        loadHistory();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        void loadHistory();
     }, []);
 
     const filteredHistory = React.useMemo(() => {
         if (!searchQuery.trim()) return history;
         const q = searchQuery.toLowerCase();
+
         return history.filter((w) => {
             const datePretty = formatDate(w.date).toLowerCase();
             const dateIso = String(w.date).toLowerCase();
-            const dayName = String(w.workout?.day ?? "").toLowerCase();
-            const muscles = String(w.workout?.muscles ?? "").toLowerCase();
+
+            // workout is often optional/unknown-ish; guard before reading
+            const workout = isObject(w.workout) ? w.workout : null;
+            const dayName = String(workout?.day ?? "").toLowerCase();
+            const muscles = String(workout?.muscles ?? "").toLowerCase();
+
             return datePretty.includes(q) || dateIso.includes(q) || dayName.includes(q) || muscles.includes(q);
         });
     }, [history, searchQuery]);

@@ -221,8 +221,6 @@ No markdown.
 
         const text = result.choices?.[0]?.message?.content || "";
 
-        console.log("Response:", text);
-
         if (reqBody.modifying && text.toLowerCase().includes("error")) {
             let message;
 

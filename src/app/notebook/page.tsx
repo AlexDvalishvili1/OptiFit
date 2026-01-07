@@ -1,127 +1,78 @@
-// src/app/notebook/page.tsx
-
 "use client";
 
 import * as React from "react";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
 import {useToast} from "@/hooks/use-toast";
-import {cn} from "@/lib/utils";
-import {
-    Play,
-    Square,
-    Plus,
-    Minus,
-    Check,
-    Clock,
-    Dumbbell,
-    Save,
-    AlertTriangle,
-    ChevronDown,
-    ChevronUp,
-} from "lucide-react";
 import NotebookHeader from "@/components/pages/notebook/NotebookHeader";
 import NotebookEmptyCard from "@/components/pages/notebook/NotebookEmptyCard";
 import ActiveWorkoutIntro from "@/components/pages/notebook/ActiveWorkoutIntro";
 import ExerciseAccordion from "@/components/pages/notebook/ExerciseAccordion";
+import {postJson} from "@/lib/api/postJson";
+import type {
+    ActiveWorkoutDay,
+    ActiveWorkoutResponse,
+    ProgramWeek,
+    WorkoutSetData,
+} from "@/lib/pages/notebook/types.ts";
+import {normalizeWeek, todayWeekday} from "@/lib/pages/notebook/training.ts";
+import {formatTime, safeNumber} from "@/lib/pages/notebook/format.ts";
+import {makeDefaultWorkoutFromToday, validateWorkoutBeforeSave} from "@/lib/pages/notebook/workout.ts";
 
-type ProgramExercise = {
-    name: string;
-    sets: string; // "4"
-    reps: string; // "6-10"
-    instructions: string;
-    video: string;
-};
-
-type ProgramDay = {
-    day: string;
-    rest: boolean;
-    muscles: string;
-    exercises: ProgramExercise[];
-};
-
-type ProgramWeek = ProgramDay[];
-
-/** What we store/send to your workout endpoints */
-type WorkoutSetData = {
-    weight: number; // must be number >= 0
-    reps: number; // must be number >= 0
-};
-
-type ActiveExercise = {
-    name: string;
-    data: WorkoutSetData[]; // each set is {weight, reps}
-};
-
-type ActiveWorkoutDay = {
-    day: string;
-    muscles: string;
-    rest: boolean;
-    exercises: ActiveExercise[];
-};
-
-type ActiveWorkoutResponse =
-    | null
-    | {
-    date: string; // start date/time
-    workout: ActiveWorkoutDay;
-};
-
-function isValidProgramWeek(x): x is ProgramWeek {
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    if (!Array.isArray(x) || x.length !== 7) return false;
-
-    for (const d of x) {
-        if (!d || typeof d !== "object") return false;
-        if (typeof d.day !== "string") return false;
-        if (typeof d.rest !== "boolean") return false;
-        if (typeof d.muscles !== "string") return false;
-        if (!Array.isArray(d.exercises)) return false;
-
-        for (const e of d.exercises) {
-            if (!e || typeof e !== "object") return false;
-            if (typeof e.name !== "string") return false;
-            if (typeof e.sets !== "string") return false;
-            if (typeof e.reps !== "string") return false;
-            if (typeof e.instructions !== "string") return false;
-            if (typeof e.video !== "string") return false;
-        }
-    }
-
-    const set = new Set(x.map((d) => d.day));
-    return days.every((d) => set.has(d));
-}
-
-function normalizeWeek(raw): ProgramWeek | null {
-    // your plan getter returns [[week]] sometimes
-    const normalized = Array.isArray(raw) && raw.length === 1 && Array.isArray(raw[0]) ? raw[0] : raw;
-    return isValidProgramWeek(normalized) ? (normalized as ProgramWeek) : null;
-}
-
-function todayWeekday() {
-    return new Date().toLocaleDateString("en-US", {weekday: "long"});
-}
-
-function formatTime(seconds: number) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-function safeNumber(v: string) {
-    if (v === "") return NaN;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : NaN;
-}
-
-// ✅ UPDATE THESE ROUTES TO MATCH YOUR APP ROUTES
 const API = {
     getTrainingPlan: "/api/workout/plan/get",
     getActiveWorkout: "/api/workout/get/active",
     startWorkout: "/api/workout/start",
     endWorkout: "/api/workout/end",
 };
+
+type ApiResp = { result?: unknown; error?: unknown };
+type EmptyObj = Record<string, never>;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isObject(v: unknown): v is UnknownRecord {
+    return typeof v === "object" && v !== null;
+}
+
+function get(obj: unknown, key: string): unknown {
+    return isObject(obj) ? obj[key] : undefined;
+}
+
+function isActiveWorkoutDay(v: unknown): v is ActiveWorkoutDay {
+    if (!isObject(v)) return false;
+    if (typeof v.day !== "string") return false;
+    if (typeof v.rest !== "boolean") return false;
+    if (typeof v.muscles !== "string") return false;
+
+    if (!Array.isArray(v.exercises)) return false;
+
+    return v.exercises.every((ex) => {
+        if (!isObject(ex)) return false;
+        if (typeof ex.name !== "string") return false;
+        if (!Array.isArray(ex.data)) return false;
+
+        return ex.data.every((s) => {
+            if (!isObject(s)) return false;
+            const w = s.weight;
+            const r = s.reps;
+            return (typeof w === "number" || typeof w === "string") && (typeof r === "number" || typeof r === "string");
+        });
+    });
+}
+
+function isActiveWorkoutResponse(v: unknown): v is ActiveWorkoutResponse {
+    // Your type is probably: { date: string; workout: ActiveWorkoutDay } | null
+    if (v === null) return true;
+    if (!isObject(v)) return false;
+
+    const date = v.date;
+    if (typeof date !== "string") return false;
+
+    const workout = v.workout;
+    if (workout != null && !isActiveWorkoutDay(workout)) return false;
+
+    return true;
+}
 
 export default function NotebookPage() {
     const {toast} = useToast();
@@ -145,24 +96,6 @@ export default function NotebookPage() {
     // expand/collapse exercises
     const [expandedExercise, setExpandedExercise] = React.useState<string | null>(null);
 
-    async function postJson(url: string, body?) {
-        const res = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: {"Content-Type": "application/json"},
-            body: body ? JSON.stringify(body) : undefined,
-        });
-
-        let data = null;
-        try {
-            data = await res.json();
-        } catch {
-            data = null;
-        }
-
-        return {res, data};
-    }
-
     function stopTimer() {
         if (timerRef.current) {
             window.clearInterval(timerRef.current);
@@ -183,48 +116,25 @@ export default function NotebookPage() {
         }, 1000);
     }
 
-    function makeDefaultWorkoutFromToday(planWeek: ProgramWeek): ActiveWorkoutDay | null {
-        const today = todayWeekday();
-        const day = planWeek.find((d) => d.day === today);
-        if (!day || day.rest || !day.exercises?.length) return null;
-
-        const exercises: ActiveExercise[] = day.exercises.map((ex) => {
-            const setsCount = Math.max(1, Number(ex.sets) || 1);
-            return {
-                name: ex.name,
-                data: Array.from({length: setsCount}).map(() => ({
-                    weight: 0,
-                    reps: 0,
-                })),
-            };
-        });
-
-        return {
-            day: day.day,
-            muscles: day.muscles,
-            rest: false,
-            exercises,
-        };
-    }
-
     async function loadAll() {
         setLoading(true);
         try {
             // 1) Load plan
-            const planRes = await postJson(API.getTrainingPlan);
-            if (planRes.data?.error) {
-                toast({title: "Notebook", description: String(planRes.data.error), variant: "destructive"});
+            const {data: planData} = await postJson<ApiResp, EmptyObj>(API.getTrainingPlan, {});
+            const planErr = get(planData, "error");
+            if (planErr != null) {
+                toast({title: "Notebook", description: String(planErr), variant: "destructive"});
                 setPlan(null);
             } else {
-                const raw = planRes.data?.result ?? null;
-                const parsed = raw ? normalizeWeek(raw) : null;
-                setPlan(parsed);
+                const raw = get(planData, "result");
+                setPlan(raw ? normalizeWeek(raw) : null);
             }
 
             // 2) Load active workout (resume if exists)
-            const activeRes = await postJson(API.getActiveWorkout);
-            if (activeRes.data?.error) {
-                toast({title: "Notebook", description: String(activeRes.data.error), variant: "destructive"});
+            const {data: activeData} = await postJson<ApiResp, EmptyObj>(API.getActiveWorkout, {});
+            const activeErr = get(activeData, "error");
+            if (activeErr != null) {
+                toast({title: "Notebook", description: String(activeErr), variant: "destructive"});
                 setActive(null);
                 setWorkoutDay(null);
                 stopTimer();
@@ -232,15 +142,17 @@ export default function NotebookPage() {
                 return;
             }
 
-            const a = (activeRes.data?.result ?? null) as ActiveWorkoutResponse;
+            const rawActive = get(activeData, "result") ?? null;
+
+            const a: ActiveWorkoutResponse = isActiveWorkoutResponse(rawActive) ? rawActive : null;
             setActive(a);
 
             if (a?.workout) {
                 setWorkoutDay(a.workout);
 
-                // restore elapsed from start date (best-effort)
                 const startedAt = Date.parse(a.date);
                 const restored = Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
+
                 startTimer(restored);
             } else {
                 setWorkoutDay(null);
@@ -253,9 +165,8 @@ export default function NotebookPage() {
     }
 
     React.useEffect(() => {
-        loadAll();
+        void loadAll();
         return () => stopTimer();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function handleStartWorkout() {
@@ -263,7 +174,7 @@ export default function NotebookPage() {
             toast({
                 title: "No training plan",
                 description: "Generate your training plan first.",
-                variant: "destructive"
+                variant: "destructive",
             });
             return;
         }
@@ -278,10 +189,10 @@ export default function NotebookPage() {
             return;
         }
 
-        // persist start in DB
-        const {data} = await postJson(API.startWorkout, {day: candidate});
-        if (data?.error) {
-            toast({title: "Start workout", description: String(data.error), variant: "destructive"});
+        const {data} = await postJson<ApiResp, { day: ActiveWorkoutDay }>(API.startWorkout, {day: candidate});
+        const err = get(data, "error");
+        if (err != null) {
+            toast({title: "Start workout", description: String(err), variant: "destructive"});
             return;
         }
 
@@ -293,34 +204,23 @@ export default function NotebookPage() {
         toast({title: "Workout started", description: "Tracking is live. Fill sets and hit Save at the end."});
     }
 
-    function validateWorkoutBeforeSave(day: ActiveWorkoutDay) {
-        for (const ex of day.exercises) {
-            for (const s of ex.data) {
-                const keys = Object.keys(s) as (keyof WorkoutSetData)[];
-                for (const k of keys) {
-                    const v = s[k];
-                    if (v === null || v === undefined) return "Invalid input";
-                    if (Number.isNaN(v)) return "Invalid input";
-                    if (typeof v !== "number") return "Invalid input";
-                    if (v < 0) return "Invalid input";
-                }
-            }
-        }
-        return null;
-    }
-
     async function handleEndWorkout() {
         if (!workoutDay) return;
 
-        const err = validateWorkoutBeforeSave(workoutDay);
-        if (err) {
-            toast({title: "Cannot save", description: err, variant: "destructive"});
+        const errMsg = validateWorkoutBeforeSave(workoutDay);
+        if (errMsg) {
+            toast({title: "Cannot save", description: errMsg, variant: "destructive"});
             return;
         }
 
-        const {data} = await postJson(API.endWorkout, {day: workoutDay, timer: elapsed});
-        if (data?.error) {
-            toast({title: "Save workout", description: String(data.error), variant: "destructive"});
+        const {data} = await postJson<ApiResp, { day: ActiveWorkoutDay; timer: number }>(API.endWorkout, {
+            day: workoutDay,
+            timer: elapsed,
+        });
+
+        const err = get(data, "error");
+        if (err != null) {
+            toast({title: "Save workout", description: String(err), variant: "destructive"});
             return;
         }
 
@@ -370,12 +270,8 @@ export default function NotebookPage() {
     return (
         <DashboardLayout>
             <div className="space-y-8">
-                <NotebookHeader
-                    hasWorkout={!!workoutDay}
-                    elapsedText={formatTime(elapsed)}
-                    onSave={handleEndWorkout}
-                    onEnd={handleEndWorkout}
-                />
+                <NotebookHeader hasWorkout={!!workoutDay} elapsedText={formatTime(elapsed)} onSave={handleEndWorkout}
+                                onEnd={handleEndWorkout}/>
 
                 {/* Loading */}
                 {loading && (
@@ -388,13 +284,8 @@ export default function NotebookPage() {
                     </div>
                 )}
 
-                {!loading && !workoutDay && (
-                    <NotebookEmptyCard
-                        todaysPlan={todaysPlan as any}
-                        canStart={!!plan}
-                        onStart={handleStartWorkout}
-                    />
-                )}
+                {!loading && !workoutDay &&
+                    <NotebookEmptyCard todaysPlan={todaysPlan} canStart={!!plan} onStart={handleStartWorkout}/>}
 
                 {!loading && workoutDay && (
                     <div className="space-y-4">
