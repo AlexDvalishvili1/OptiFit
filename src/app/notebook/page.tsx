@@ -1,7 +1,9 @@
+// src/app/notebook/page.tsx
+
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/DashboardLayout";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {useToast} from "@/hooks/use-toast";
@@ -19,6 +21,10 @@ import {
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
+import NotebookHeader from "@/components/pages/notebook/NotebookHeader";
+import NotebookEmptyCard from "@/components/pages/notebook/NotebookEmptyCard";
+import ActiveWorkoutIntro from "@/components/pages/notebook/ActiveWorkoutIntro";
+import ExerciseAccordion from "@/components/pages/notebook/ExerciseAccordion";
 
 type ProgramExercise = {
     name: string;
@@ -364,34 +370,12 @@ export default function NotebookPage() {
     return (
         <DashboardLayout>
             <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
-                        <h1 className="font-display text-2xl lg:text-3xl font-bold">Workout Notebook</h1>
-                        <p className="text-muted-foreground mt-1">
-                            {workoutDay ? "Track weight & reps, then save to history." : "Start a workout session to begin logging."}
-                        </p>
-                    </div>
-
-                    {workoutDay && (
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent">
-                                <Clock className="h-5 w-5 text-primary"/>
-                                <span className="font-display text-lg font-semibold">{formatTime(elapsed)}</span>
-                            </div>
-
-                            <Button size="lg" onClick={handleEndWorkout} className="h-11">
-                                <Save className="mr-2 h-5 w-5"/>
-                                Save Workout
-                            </Button>
-
-                            <Button size="lg" variant="destructive" onClick={handleEndWorkout} className="h-11">
-                                <Square className="mr-2 h-5 w-5"/>
-                                End
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                <NotebookHeader
+                    hasWorkout={!!workoutDay}
+                    elapsedText={formatTime(elapsed)}
+                    onSave={handleEndWorkout}
+                    onEnd={handleEndWorkout}
+                />
 
                 {/* Loading */}
                 {loading && (
@@ -404,171 +388,32 @@ export default function NotebookPage() {
                     </div>
                 )}
 
-                {/* No active workout */}
                 {!loading && !workoutDay && (
-                    <div className="p-8 rounded-2xl bg-card border border-border">
-                        <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
-                                {todaysPlan?.rest ? <AlertTriangle className="h-6 w-6"/> :
-                                    <Dumbbell className="h-6 w-6"/>}
-                            </div>
-                            <div className="flex-1">
-                                <h2 className="font-display text-xl font-semibold">
-                                    {todaysPlan?.rest ? "Rest day" : "Ready to train?"}
-                                </h2>
-                                <p className="text-muted-foreground mt-1">
-                                    {todaysPlan
-                                        ? todaysPlan.rest
-                                            ? "Today is a rest day. If you want a workout today, modify your plan in Training."
-                                            : `Today's plan: ${todaysPlan.muscles} • ${todaysPlan.exercises.length} exercises`
-                                        : "No training plan found. Generate your plan in Training first."}
-                                </p>
-                                <div className="mt-4">
-                                    <Button onClick={handleStartWorkout} disabled={!plan || !!todaysPlan?.rest}>
-                                        <Play className="mr-2 h-5 w-5"/>
-                                        Start Today’s Workout
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <NotebookEmptyCard
+                        todaysPlan={todaysPlan as any}
+                        canStart={!!plan}
+                        onStart={handleStartWorkout}
+                    />
                 )}
 
-                {/* Active workout */}
                 {!loading && workoutDay && (
                     <div className="space-y-4">
-                        <div className="p-6 rounded-2xl gradient-primary text-primary-foreground">
-                            <h2 className="font-display text-xl font-semibold mb-1">{workoutDay.day} Workout</h2>
-                            <p className="text-primary-foreground/80 text-sm">{workoutDay.muscles}</p>
-                        </div>
+                        <ActiveWorkoutIntro day={workoutDay.day} muscles={workoutDay.muscles}/>
 
                         <div className="space-y-4">
-                            {workoutDay.exercises.map((ex, exIdx) => {
-                                const open = expandedExercise === ex.name;
-
-                                return (
-                                    <div
-                                        key={`${workoutDay.day}-${ex.name}-${exIdx}`}
-                                        className="rounded-2xl bg-card border border-border overflow-hidden transition-all duration-300"
-                                    >
-                                        <button
-                                            onClick={() => setExpandedExercise(open ? null : ex.name)}
-                                            className="w-full p-6 flex items-center justify-between text-left hover:bg-accent/30 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-4 min-w-0">
-                                                <div
-                                                    className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center">
-                                                    <Dumbbell className="h-6 w-6 text-primary-foreground"/>
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="font-display text-lg font-semibold truncate">{ex.name}</h3>
-                                                    <p className="text-sm text-muted-foreground">{ex.data.length} sets</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                                <span className="hidden sm:inline">Tap to log sets</span>
-                                                {open ? <ChevronUp className="h-5 w-5"/> :
-                                                    <ChevronDown className="h-5 w-5"/>}
-                                            </div>
-                                        </button>
-
-                                        {open && (
-                                            <div className="px-6 pb-6 animate-fade-in">
-                                                <div className="border-t border-border pt-6">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <p className="text-sm text-muted-foreground">Enter weight & reps
-                                                            for each set</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => removeSet(exIdx)}
-                                                                disabled={ex.data.length <= 1}
-                                                            >
-                                                                <Minus className="h-4 w-4"/>
-                                                            </Button>
-                                                            <Button variant="outline" size="icon"
-                                                                    onClick={() => addSet(exIdx)}>
-                                                                <Plus className="h-4 w-4"/>
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Header row */}
-                                                    <div
-                                                        className="grid grid-cols-4 gap-3 mb-2 px-4 text-xs font-medium text-muted-foreground">
-                                                        <span>SET</span>
-                                                        <span>WEIGHT</span>
-                                                        <span>REPS</span>
-                                                        <span className="text-center">DONE</span>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        {ex.data.map((s, setIdx) => {
-                                                            const done = s.weight > 0 && s.reps > 0;
-
-                                                            return (
-                                                                <div
-                                                                    key={`${ex.name}-set-${setIdx}`}
-                                                                    className={cn(
-                                                                        "grid grid-cols-4 gap-3 items-center p-4 rounded-xl transition-colors",
-                                                                        done ? "bg-success/10" : "bg-accent/30 hover:bg-accent/40"
-                                                                    )}
-                                                                >
-                                                                    <span className="font-medium">{setIdx + 1}</span>
-
-                                                                    <Input
-                                                                        type="number"
-                                                                        inputMode="decimal"
-                                                                        placeholder="0"
-                                                                        className="h-10"
-                                                                        value={Number.isFinite(s.weight) ? String(s.weight) : ""}
-                                                                        onChange={(e) => {
-                                                                            const n = safeNumber(e.target.value);
-                                                                            updateSet(exIdx, setIdx, {weight: Number.isNaN(n) ? 0 : n});
-                                                                        }}
-                                                                    />
-
-                                                                    <Input
-                                                                        type="number"
-                                                                        inputMode="numeric"
-                                                                        placeholder="0"
-                                                                        className="h-10"
-                                                                        value={Number.isFinite(s.reps) ? String(s.reps) : ""}
-                                                                        onChange={(e) => {
-                                                                            const n = safeNumber(e.target.value);
-                                                                            updateSet(exIdx, setIdx, {reps: Number.isNaN(n) ? 0 : Math.floor(n)});
-                                                                        }}
-                                                                    />
-
-                                                                    <div className="flex justify-center">
-                                                                        <div
-                                                                            className={cn(
-                                                                                "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
-                                                                                done ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
-                                                                            )}
-                                                                            title={done ? "Completed" : "Fill weight & reps"}
-                                                                        >
-                                                                            <Check className="h-5 w-5"/>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    <div
-                                                        className="mt-4 flex items-center justify-between pt-4 border-t border-border">
-                                                        <p className="text-sm text-muted-foreground">Tip: keep form
-                                                            strict; don’t chase numbers.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            {workoutDay.exercises.map((ex, exIdx) => (
+                                <ExerciseAccordion
+                                    key={`${workoutDay.day}-${ex.name}-${exIdx}`}
+                                    ex={ex}
+                                    exIdx={exIdx}
+                                    open={expandedExercise === ex.name}
+                                    onToggle={() => setExpandedExercise(expandedExercise === ex.name ? null : ex.name)}
+                                    onAddSet={addSet}
+                                    onRemoveSet={removeSet}
+                                    onUpdateSet={updateSet}
+                                    safeNumber={safeNumber}
+                                />
+                            ))}
                         </div>
                     </div>
                 )}

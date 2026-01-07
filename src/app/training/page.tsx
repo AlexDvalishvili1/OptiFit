@@ -2,63 +2,23 @@
 
 import * as React from "react";
 import {useRouter} from "next/navigation";
-import {DashboardLayout} from "@/components/layout/DashboardLayout";
-import {Button} from "@/components/ui/button";
-import {Textarea} from "@/components/ui/textarea";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {useToast} from "@/hooks/use-toast";
-import {cn} from "@/lib/utils";
-import {
-    Dumbbell,
-    Clock,
-    Sparkles,
-    RefreshCw,
-    AlertTriangle,
-    Wand2,
-    Youtube,
-    ChevronDown,
-    ChevronUp,
-    Info,
-    Play,
-} from "lucide-react";
-
-type ProgramExercise = {
-    name: string;
-    sets: string;
-    reps: string;
-    instructions: string;
-    video: string;
-};
-
-type ProgramDay = {
-    day: string;
-    rest: boolean;
-    muscles: string;
-    exercises: ProgramExercise[];
-};
-
-type ProgramWeek = ProgramDay[];
-
-/** Payload shape your startWorkout backend expects: reqBody.day */
-type WorkoutSetData = { weight: number; reps: number };
-type ActiveExercise = { name: string; data: WorkoutSetData[] };
-type ActiveWorkoutDay = {
-    day: string;
-    muscles: string;
-    rest: boolean;
-    exercises: ActiveExercise[];
-};
+import type {ProgramDay, ProgramWeek, ActiveWorkoutDay} from "@/components/pages/training/types.ts";
+import TrainingHeader from "@/components/pages/training/TrainingHeader";
+import TrainingEmptyState from "@/components/pages/training/TrainingEmptyState";
+import TrainingModifyCard from "@/components/pages/training/TrainingModifyCard";
+import TrainingDayCard from "@/components/pages/training/TrainingDayCard";
 
 function isValidProgramWeek(x): x is ProgramWeek {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     if (!Array.isArray(x) || x.length !== 7) return false;
-
     for (const d of x) {
         if (!d || typeof d !== "object") return false;
         if (typeof d.day !== "string") return false;
         if (typeof d.rest !== "boolean") return false;
         if (typeof d.muscles !== "string") return false;
         if (!Array.isArray(d.exercises)) return false;
-
         for (const e of d.exercises) {
             if (!e || typeof e !== "object") return false;
             if (typeof e.name !== "string") return false;
@@ -68,7 +28,6 @@ function isValidProgramWeek(x): x is ProgramWeek {
             if (typeof e.video !== "string") return false;
         }
     }
-
     const set = new Set(x.map((d) => d.day));
     return days.every((d) => set.has(d));
 }
@@ -90,10 +49,7 @@ function todayISODateKey() {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-/** Frontend-only modify limit: 2/day */
-const LS_KEYS = {
-    modCount: (dayKey: string) => `optifit_training_mods_${dayKey}`,
-};
+const LS_KEYS = {modCount: (dayKey: string) => `optifit_training_mods_${dayKey}`};
 
 function getLocalNumber(key: string, fallback = 0) {
     try {
@@ -114,24 +70,14 @@ function setLocalNumber(key: string, n: number) {
     }
 }
 
-function splitSteps(instructions: string) {
-    return instructions
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-}
-
-// ✅ SET THESE TO YOUR REAL ROUTES
 const API = {
     getTraining: "/api/workout/plan/get",
     aiTraining: "/api/workout/plan/generate",
-    startWorkout: "/api/workout/start", // ✅ your start backend route
-    getActiveWorkout: "/api/workout/get/active", // ✅ your get active backend route
+    startWorkout: "/api/workout/start",
+    getActiveWorkout: "/api/workout/get/active",
 };
 
-const ROUTES = {
-    notebook: "/notebook", // ✅ change if your notebook route differs
-};
+const ROUTES = {notebook: "/notebook"};
 
 function toActiveWorkoutDay(day: ProgramDay): ActiveWorkoutDay {
     return {
@@ -140,10 +86,7 @@ function toActiveWorkoutDay(day: ProgramDay): ActiveWorkoutDay {
         rest: day.rest,
         exercises: (day.exercises || []).map((ex) => {
             const setsCount = Math.max(1, Number(ex.sets) || 1);
-            return {
-                name: ex.name,
-                data: Array.from({length: setsCount}).map(() => ({weight: 0, reps: 0})),
-            };
+            return {name: ex.name, data: Array.from({length: setsCount}).map(() => ({weight: 0, reps: 0}))};
         }),
     };
 }
@@ -157,7 +100,6 @@ export default function TrainingPage() {
     const [rawPlan, setRawPlan] = React.useState<string | null>(null);
 
     const [expandedDay, setExpandedDay] = React.useState<string | null>(todayWeekday());
-
     const [generating, setGenerating] = React.useState(false);
     const [modifying, setModifying] = React.useState(false);
 
@@ -167,10 +109,7 @@ export default function TrainingPage() {
     const dayKey = React.useMemo(() => todayISODateKey(), []);
     const [modsLeft, setModsLeft] = React.useState(2);
 
-    // per-exercise "How to do" collapses
     const [openHowTo, setOpenHowTo] = React.useState<Record<string, boolean>>({});
-
-    // start workout UX
     const [startingDay, setStartingDay] = React.useState<string | null>(null);
     const [hasActiveWorkout, setHasActiveWorkout] = React.useState(false);
 
@@ -202,7 +141,6 @@ export default function TrainingPage() {
         } catch {
             data = null;
         }
-
         return {res, data};
     }
 
@@ -210,7 +148,6 @@ export default function TrainingPage() {
         setLoading(true);
         try {
             const {data} = await postJson(API.getTraining);
-
             if (data?.error) {
                 toast({title: "Training", description: String(data.error), variant: "destructive"});
                 setPlan(null);
@@ -220,7 +157,6 @@ export default function TrainingPage() {
 
             const raw = data?.result ?? null;
             setRawPlan(raw);
-
             if (!raw) {
                 setPlan(null);
                 return;
@@ -236,7 +172,6 @@ export default function TrainingPage() {
                 setPlan(null);
                 return;
             }
-
             setPlan(parsed);
         } finally {
             setLoading(false);
@@ -259,7 +194,6 @@ export default function TrainingPage() {
         setGenerating(true);
         try {
             const {data} = await postJson(API.aiTraining, {regenerate: true});
-
             if (data?.error) {
                 toast({title: "Training", description: String(data.error), variant: "destructive"});
                 return;
@@ -287,7 +221,7 @@ export default function TrainingPage() {
                 toast({
                     title: "AI JSON invalid",
                     description: "AI returned invalid JSON structure.",
-                    variant: "destructive",
+                    variant: "destructive"
                 });
                 return;
             }
@@ -325,7 +259,6 @@ export default function TrainingPage() {
         setModifying(true);
         try {
             const {data} = await postJson(API.aiTraining, {modifying: promptTrimmed});
-
             if (data?.error) {
                 toast({title: "Training", description: String(data.error), variant: "destructive"});
                 return;
@@ -353,7 +286,7 @@ export default function TrainingPage() {
                 toast({
                     title: "AI JSON invalid",
                     description: "AI returned invalid JSON structure.",
-                    variant: "destructive",
+                    variant: "destructive"
                 });
                 return;
             }
@@ -374,7 +307,6 @@ export default function TrainingPage() {
     }
 
     async function handleStartWorkout(day: ProgramDay) {
-        // If already active, just go to notebook
         if (hasActiveWorkout) {
             toast({title: "Workout in progress", description: "Resuming your active workout."});
             router.push(ROUTES.notebook);
@@ -389,7 +321,6 @@ export default function TrainingPage() {
         setStartingDay(day.day);
         try {
             const payload = toActiveWorkoutDay(day);
-
             const {data} = await postJson(API.startWorkout, {day: payload});
 
             if (data?.error) {
@@ -399,7 +330,6 @@ export default function TrainingPage() {
 
             setHasActiveWorkout(true);
             toast({title: "Workout started", description: `Started ${day.day}. Redirecting to Notebook…`});
-
             router.push(ROUTES.notebook);
         } finally {
             setStartingDay(null);
@@ -411,32 +341,13 @@ export default function TrainingPage() {
     return (
         <DashboardLayout>
             <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
-                        <h1 className="font-display text-2xl lg:text-3xl font-bold">AI Training Program</h1>
-                        <p className="text-muted-foreground mt-1">Loads your plan from database. Regenerate is available
-                            once per week.</p>
-                    </div>
+                <TrainingHeader
+                    hasPlan={!!plan}
+                    loading={loading}
+                    generating={generating}
+                    onGenerate={handleGenerate}
+                />
 
-                    {plan && (
-                        <Button onClick={handleGenerate} disabled={loading || generating} className="h-11">
-                            {generating ? (
-                                <>
-                                    <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-5 w-5"/>
-                                    {plan ? "Regenerate (weekly)" : "Generate Program"}
-                                </>
-                            )}
-                        </Button>
-                    )}
-                </div>
-
-                {/* Loading */}
                 {loading && (
                     <div className="p-8 rounded-2xl bg-card border border-border">
                         <div className="animate-pulse space-y-3">
@@ -447,291 +358,39 @@ export default function TrainingPage() {
                     </div>
                 )}
 
-                {/* Empty */}
-                {!loading && !plan && (
-                    <div className="p-8 rounded-2xl bg-card border border-border">
-                        <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
-                                <AlertTriangle className="h-6 w-6"/>
-                            </div>
-                            <div className="flex-1">
-                                <h2 className="font-display text-xl font-semibold">No program yet</h2>
-                                <p className="text-muted-foreground mt-1">Generate your weekly gym plan based on your
-                                    profile.</p>
-                                <div className="mt-4">
-                                    <Button onClick={handleGenerate} disabled={generating}>
-                                        {generating ? (
-                                            <>
-                                                <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="mr-2 h-5 w-5"/>
-                                                Generate Program
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {!loading && !plan && <TrainingEmptyState generating={generating} onGenerate={handleGenerate}/>}
 
-                {/* Modify */}
                 {!loading && plan && (
-                    <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div>
-                                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                                    <Wand2 className="h-5 w-5"/>
-                                    Modify your program
-                                </h3>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Example: “No Friday.” / “I have scoliosis.” / “Only dumbbells available.”
-                                </p>
-                            </div>
-
-                            <div className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm">
-                                <Clock className="h-4 w-4"/>
-                                <span className="font-medium">{modsLeft}</span>
-                                <span className="text-muted-foreground">mods left today</span>
-                            </div>
-                        </div>
-
-                        <Textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Type a plan-related request…"
-                            className="min-h-[110px]"
-                            disabled={modifying}
-                        />
-
-                        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                            <p className="text-xs text-muted-foreground">
-                                ⚠️ Non-plan prompts → warning, then backend bans (5 min, doubles).
-                            </p>
-
-                            <Button onClick={handleModify}
-                                    disabled={modifying || modsLeft <= 0 || promptTrimmed.length < 4} className="h-11">
-                                {modifying ? (
-                                    <>
-                                        <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
-                                        Modifying...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Wand2 className="mr-2 h-5 w-5"/>
-                                        Apply Changes
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </div>
+                    <TrainingModifyCard
+                        modsLeft={modsLeft}
+                        prompt={prompt}
+                        setPrompt={setPrompt}
+                        modifying={modifying}
+                        canApply={!modifying && modsLeft > 0 && promptTrimmed.length >= 4}
+                        onApply={handleModify}
+                    />
                 )}
 
-                {/* Weekly Plan */}
                 {!loading && plan && (
                     <div className="space-y-4">
                         {plan.map((day) => {
                             const isToday = day.day === today;
                             const expanded = expandedDay === day.day;
-
                             const isStartingThisDay = startingDay === day.day;
 
                             return (
-                                <div
+                                <TrainingDayCard
                                     key={day.day}
-                                    className={cn(
-                                        "rounded-2xl bg-card border border-border overflow-hidden transition-all duration-300",
-                                        isToday && "ring-2 ring-primary"
-                                    )}
-                                >
-                                    {/* Day header */}
-                                    <button
-                                        onClick={() => setExpandedDay(expanded ? null : day.day)}
-                                        className="w-full p-6 flex items-center justify-between text-left hover:bg-accent/30 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div
-                                                className={cn(
-                                                    "h-12 w-12 rounded-xl flex items-center justify-center",
-                                                    day.rest ? "bg-muted" : "gradient-primary"
-                                                )}
-                                            >
-                                                <Dumbbell
-                                                    className={cn("h-6 w-6", day.rest ? "text-muted-foreground" : "text-primary-foreground")}/>
-                                            </div>
-
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-display text-lg font-semibold">{day.day}</h3>
-                                                    {isToday && (
-                                                        <span
-                                                            className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
-                              Today
-                            </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-muted-foreground">{day.rest ? "Rest Day" : day.muscles}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <span>{day.rest ? "Rest" : `${day.exercises.length} exercises`}</span>
-                                            {expanded ? <ChevronUp className="h-5 w-5"/> :
-                                                <ChevronDown className="h-5 w-5"/>}
-                                        </div>
-                                    </button>
-
-                                    {/* Day body */}
-                                    {expanded && (
-                                        <div className="px-6 pb-6 animate-fade-in">
-                                            <div className="border-t border-border pt-6">
-                                                {day.rest ? (
-                                                    <div
-                                                        className="p-4 rounded-xl bg-accent/30 text-sm text-muted-foreground">
-                                                        Recovery day. Optional: light walk, mobility, easy stretching.
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        {day.exercises.map((ex, idx) => {
-                                                            const key = `${day.day}__${idx}__${ex.name}`;
-                                                            const open = !!openHowTo[key];
-                                                            const steps = splitSteps(ex.instructions || "");
-                                                            const hasHowTo = steps.length > 0;
-
-                                                            return (
-                                                                <div
-                                                                    key={key}
-                                                                    className="rounded-2xl border border-border bg-accent/20 hover:bg-accent/30 transition-colors"
-                                                                >
-                                                                    {/* Exercise row */}
-                                                                    <div
-                                                                        className="p-4 flex items-start justify-between gap-4">
-                                                                        <div className="flex items-start gap-4 min-w-0">
-                                      <span
-                                          className="h-9 w-9 shrink-0 rounded-xl bg-background flex items-center justify-center text-sm font-semibold">
-                                        {idx + 1}
-                                      </span>
-
-                                                                            <div className="min-w-0">
-                                                                                <p className="font-medium truncate">{ex.name}</p>
-                                                                                <p className="text-sm text-muted-foreground">
-                                                                                    {ex.sets} sets · {ex.reps}
-                                                                                </p>
-
-                                                                                <div
-                                                                                    className="mt-3 flex flex-wrap items-center gap-2">
-                                                                                    {hasHowTo && (
-                                                                                        <Button
-                                                                                            type="button"
-                                                                                            variant="outline"
-                                                                                            size="sm"
-                                                                                            onClick={() => toggleHowTo(key)}
-                                                                                            className="h-9 rounded-xl"
-                                                                                        >
-                                                                                            <Info
-                                                                                                className="mr-2 h-4 w-4"/>
-                                                                                            How to do
-                                                                                            <span
-                                                                                                className="ml-2 inline-flex">
-                                                {open ? <ChevronUp className="h-4 w-4"/> :
-                                                    <ChevronDown className="h-4 w-4"/>}
-                                              </span>
-                                                                                        </Button>
-                                                                                    )}
-
-                                                                                    {ex.video?.startsWith("https://") && (
-                                                                                        <a
-                                                                                            href={ex.video}
-                                                                                            target="_blank"
-                                                                                            rel="noreferrer"
-                                                                                            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                                                                                        >
-                                                                                            <Youtube
-                                                                                                className="h-5 w-5"/>
-                                                                                            Video
-                                                                                        </a>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* How-to panel */}
-                                                                    {hasHowTo && open && (
-                                                                        <div className="px-4 pb-4">
-                                                                            <div
-                                                                                className="rounded-xl bg-background/70 border border-border p-4">
-                                                                                <div
-                                                                                    className="flex items-center justify-between gap-3">
-                                                                                    <p className="text-sm font-medium">How
-                                                                                        to do it</p>
-                                                                                    <span
-                                                                                        className="text-xs text-muted-foreground">{steps.length} steps</span>
-                                                                                </div>
-
-                                                                                <div className="mt-3 grid gap-2">
-                                                                                    {steps.map((s, i) => (
-                                                                                        <div
-                                                                                            key={`${key}-step-${i}`}
-                                                                                            className="flex items-start gap-3 rounded-lg bg-accent/30 px-3 py-2"
-                                                                                        >
-                                              <span
-                                                  className="mt-0.5 h-6 w-6 shrink-0 rounded-md bg-background flex items-center justify-center text-xs font-semibold">
-                                                {i + 1}
-                                              </span>
-                                                                                            <p className="text-sm text-muted-foreground leading-relaxed">{s}</p>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-
-                                                        <div
-                                                            className="mt-4 flex items-center justify-between pt-4 border-t border-border">
-                                                            <p className="text-sm text-muted-foreground">Rest between
-                                                                sets: 60-90 seconds</p>
-
-                                                            <Button
-                                                                variant={hasActiveWorkout ? "outline" : "default"}
-                                                                size="sm"
-                                                                onClick={() => handleStartWorkout(day)}
-                                                                disabled={day.rest || isStartingThisDay}
-                                                            >
-                                                                {isStartingThisDay ? (
-                                                                    <>
-                                                                        <RefreshCw
-                                                                            className="mr-2 h-4 w-4 animate-spin"/>
-                                                                        Starting...
-                                                                    </>
-                                                                ) : hasActiveWorkout ? (
-                                                                    <>
-                                                                        <Play className="mr-2 h-4 w-4"/>
-                                                                        Resume Workout
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Play className="mr-2 h-4 w-4"/>
-                                                                        Start This Workout
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Optional debug */}
-                                            {/* <pre className="mt-4 text-xs overflow-auto">{JSON.stringify(rawPlan, null, 2)}</pre> */}
-                                        </div>
-                                    )}
-                                </div>
+                                    day={day}
+                                    isToday={isToday}
+                                    expanded={expanded}
+                                    onToggleExpand={() => setExpandedDay(expanded ? null : day.day)}
+                                    openHowTo={openHowTo}
+                                    onToggleHowTo={toggleHowTo}
+                                    hasActiveWorkout={hasActiveWorkout}
+                                    isStartingThisDay={isStartingThisDay}
+                                    onStartWorkout={() => handleStartWorkout(day)}
+                                />
                             );
                         })}
                     </div>

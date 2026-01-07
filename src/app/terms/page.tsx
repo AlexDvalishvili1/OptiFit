@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {Navbar} from '@/components/layout/Navbar';
+import {Navbar} from "@/components/layout/navbar/Navbar.tsx";
 import {ArrowLeft} from 'lucide-react';
 
 export default function TermsOfService() {

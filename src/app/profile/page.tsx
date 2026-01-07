@@ -1,7 +1,9 @@
+// src/app/profile/page.tsx
+
 "use client";
 
 import {useEffect, useState} from "react";
-import {DashboardLayout} from "@/components/layout/DashboardLayout";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";

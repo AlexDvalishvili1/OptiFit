@@ -1,4 +1,5 @@
-// app/layout.tsx
+// src/app/layout.tsx
+
 import "./globals.css";
 import Providers from "@/components/layout/Providers.tsx";
 import {Toaster} from "@/components/ui/toaster";

@@ -1,19 +1,15 @@
+// src/app/diet/page.tsx
+
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/DashboardLayout";
-import {Button} from "@/components/ui/button";
-import {Textarea} from "@/components/ui/textarea";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {useToast} from "@/hooks/use-toast";
-import {
-    Sparkles,
-    RefreshCw,
-    Flame,
-    Clock,
-    Utensils,
-    AlertTriangle,
-    Wand2,
-} from "lucide-react";
+import DietHeader from "@/components/pages/diet/DietHeader";
+import DietEmptyState from "@/components/pages/diet/DietEmptyState";
+import DietMacroOverview from "@/components/pages/diet/DietMacroOverview";
+import DietModifyCard from "@/components/pages/diet/DietModifyCard";
+import DietMealCard from "@/components/pages/diet/DietMealCard";
 
 type DietFood = {
     name: string;
@@ -301,18 +297,7 @@ export default function DietPage() {
     return (
         <DashboardLayout>
             <div className="space-y-8">
-                {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
-                        <h1 className="font-display text-2xl lg:text-3xl font-bold">
-                            AI Diet Plan
-                        </h1>
-                        <p className="text-muted-foreground mt-1">
-                            Opens today’s diet if it exists. Otherwise generate it. You can
-                            request modifications using the textarea.
-                        </p>
-                    </div>
-                </div>
+                <DietHeader/>
 
                 {/* Loading */}
                 {loading && (
@@ -327,224 +312,35 @@ export default function DietPage() {
 
                 {/* Empty */}
                 {!loading && !plan && (
-                    <div className="p-8 rounded-2xl bg-card border border-border">
-                        <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
-                                <AlertTriangle className="h-6 w-6"/>
-                            </div>
-                            <div className="flex-1">
-                                <h2 className="font-display text-xl font-semibold">
-                                    No diet for today
-                                </h2>
-                                <p className="text-muted-foreground mt-1">
-                                    Generate your meal plan based on your profile.
-                                </p>
-                                <div className="mt-4">
-                                    <Button
-                                        onClick={handleGenerate}
-                                        disabled={loading || generating}
-                                        className="h-11"
-                                    >
-                                        {generating ? (
-                                            <>
-                                                <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="mr-2 h-5 w-5"/>
-                                                Generate Diet
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <DietEmptyState generating={generating} onGenerate={handleGenerate}/>
                 )}
 
-                {/* Plan */}
                 {!loading && plan && (
                     <>
-                        {/* Macro Overview */}
-                        <div className="p-6 rounded-2xl gradient-primary text-primary-foreground">
-                            <div className="flex items-center gap-3 mb-6">
-                                <Flame className="h-6 w-6"/>
-                                <h2 className="font-display text-xl font-semibold">
-                                    Daily Targets
-                                </h2>
-                            </div>
+                        <DietMacroOverview
+                            calories={plan.calories}
+                            protein={plan.protein}
+                            carbs={plan.carbohydrates}
+                            fat={plan.fat}
+                        />
 
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div>
-                                    <p className="font-display text-3xl font-bold">
-                                        {plan.calories}
-                                    </p>
-                                    <p className="text-primary-foreground/80 text-sm">Calories</p>
-                                </div>
-                                <div>
-                                    <p className="font-display text-3xl font-bold">
-                                        {plan.protein}g
-                                    </p>
-                                    <p className="text-primary-foreground/80 text-sm">Protein</p>
-                                </div>
-                                <div>
-                                    <p className="font-display text-3xl font-bold">
-                                        {plan.carbohydrates}g
-                                    </p>
-                                    <p className="text-primary-foreground/80 text-sm">Carbs</p>
-                                </div>
-                                <div>
-                                    <p className="font-display text-3xl font-bold">{plan.fat}g</p>
-                                    <p className="text-primary-foreground/80 text-sm">Fat</p>
-                                </div>
-                            </div>
-                        </div>
+                        <DietModifyCard
+                            prompt={prompt}
+                            setPrompt={setPrompt}
+                            modifying={modifying}
+                            canApply={!modifying && promptTrimmed.length >= 6}
+                            onApply={handleModify}
+                        />
 
-                        {/* Modify */}
-                        <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-                            <div className="flex items-center justify-between gap-3 flex-wrap">
-                                <div>
-                                    <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                                        <Wand2 className="h-5 w-5"/>
-                                        Modify today’s diet
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Example: “Avocado is expensive, replace it with something
-                                        similar.”
-                                    </p>
-                                </div>
-
-                                <div className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm">
-                                    <Clock className="h-4 w-4"/>
-                                    <span className="text-muted-foreground">
-                    Backend controls warnings/bans
-                  </span>
-                                </div>
-                            </div>
-
-                            <Textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Type a diet-related request…"
-                                className="min-h-[110px]"
-                                disabled={modifying}
-                            />
-
-                            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                                <p className="text-xs text-muted-foreground">
-                                    ⚠️ Non-diet prompts: first warning, then backend bans you (5
-                                    min, doubles).
-                                </p>
-
-                                <Button
-                                    onClick={handleModify}
-                                    disabled={modifying || promptTrimmed.length < 6}
-                                    className="h-11"
-                                >
-                                    {modifying ? (
-                                        <>
-                                            <RefreshCw className="mr-2 h-5 w-5 animate-spin"/>
-                                            Modifying...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Wand2 className="mr-2 h-5 w-5"/>
-                                            Apply Changes
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Meals */}
                         <div className="space-y-4">
-                            {plan.meals.map((meal, idx) => {
-                                const t = mealTotals[idx];
-                                return (
-                                    <div
-                                        key={`${meal.name}-${meal.time}-${idx}`}
-                                        className="rounded-2xl bg-card border border-border overflow-hidden"
-                                    >
-                                        <div
-                                            className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                            <div className="flex items-start gap-4">
-                                                <div
-                                                    className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
-                                                    <Utensils className="h-5 w-5"/>
-                                                </div>
-
-                                                <div>
-                                                    <div
-                                                        className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="inline-flex items-center gap-2">
-                              <Clock className="h-4 w-4"/>
-                                {meal.time}
-                            </span>
-                                                        <span className="h-1 w-1 rounded-full bg-muted-foreground/40"/>
-                                                        <span className="uppercase tracking-wide text-xs">
-                              Meal {idx + 1}
-                            </span>
-                                                    </div>
-                                                    <h3 className="font-display text-lg font-semibold mt-1">
-                                                        {meal.name}
-                                                    </h3>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-right">
-                                                <p className="font-display text-lg font-semibold">
-                                                    {t.calories} kcal
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    P: {t.protein}g · C: {t.carbohydrates}g · F: {t.fat}g
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="border-t border-border">
-                                            <div className="p-6 overflow-x-auto">
-                                                <table className="w-full text-sm">
-                                                    <thead>
-                                                    <tr className="text-left text-muted-foreground">
-                                                        <th className="pb-3 font-medium">Food</th>
-                                                        <th className="pb-3 font-medium">Serving</th>
-                                                        <th className="pb-3 font-medium text-right">
-                                                            Cal
-                                                        </th>
-                                                        <th className="pb-3 font-medium text-right">P</th>
-                                                        <th className="pb-3 font-medium text-right">C</th>
-                                                        <th className="pb-3 font-medium text-right">F</th>
-                                                    </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    {meal.foods.map((f, i) => (
-                                                        <tr
-                                                            key={`${f.name}-${i}`}
-                                                            className="border-t border-border/60"
-                                                        >
-                                                            <td className="py-3 font-medium">{f.name}</td>
-                                                            <td className="py-3 text-muted-foreground">
-                                                                {f.serving}
-                                                            </td>
-                                                            <td className="py-3 text-right">{f.calories}</td>
-                                                            <td className="py-3 text-right">{f.protein}</td>
-                                                            <td className="py-3 text-right">
-                                                                {f.carbohydrates}
-                                                            </td>
-                                                            <td className="py-3 text-right">{f.fat}</td>
-                                                        </tr>
-                                                    ))}
-                                                    </tbody>
-                                                </table>
-
-                                                {/* Debug */}
-                                                {/* <pre className="mt-4 text-xs overflow-auto">{rawPlan}</pre> */}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {plan.meals.map((meal, i) => (
+                                <DietMealCard
+                                    key={`${meal.name}-${meal.time}-${i}`}
+                                    meal={meal}
+                                    totals={mealTotals[i]}
+                                    index={i}
+                                />
+                            ))}
                         </div>
                     </>
                 )}

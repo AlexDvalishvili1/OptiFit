@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from 'react';
-import {DashboardLayout} from '@/components/layout/DashboardLayout';
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
 import {Button} from '@/components/ui/button';
 import {Switch} from '@/components/ui/switch';
 import {Label} from '@/components/ui/label';
