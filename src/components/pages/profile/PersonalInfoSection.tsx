@@ -4,19 +4,24 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {User as UserIcon} from "lucide-react";
+import type {ProfileFormData} from "@/lib/pages/profile/types";
 
-type FormData = {
-    name: string;
-    email: string;
-    gender: undefined | "male" | "female";
-    dateOfBirth: string;
-    height: number;
-    weight: number;
-};
+type PersonalFields = Pick<ProfileFormData, "name" | "email" | "gender" | "dateOfBirth" | "height" | "weight">;
+
+type PersonalOnChange = (
+    field: "name" | "email" | "gender" | "dateOfBirth" | "height" | "weight",
+    value:
+        | ProfileFormData["name"]
+        | ProfileFormData["email"]
+        | ProfileFormData["gender"]
+        | ProfileFormData["dateOfBirth"]
+        | ProfileFormData["height"]
+        | ProfileFormData["weight"]
+) => void;
 
 type Props = {
-    formData: FormData;
-    onChange: (field: string, value: any) => void;
+    formData: PersonalFields;
+    onChange: PersonalOnChange;
 };
 
 export function PersonalInfoSection({formData, onChange}: Props) {
@@ -51,7 +56,10 @@ export function PersonalInfoSection({formData, onChange}: Props) {
 
                 <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={formData.gender} onValueChange={(v) => onChange("gender", v)}>
+                    <Select
+                        value={formData.gender ?? ""}
+                        onValueChange={(v) => onChange("gender", (v || undefined) as PersonalFields["gender"])}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Select gender"/>
                         </SelectTrigger>

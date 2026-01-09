@@ -46,7 +46,7 @@ userSchema.pre("save", async function () {
     }
 });
 
-export type UserDoc = InferSchemaType<typeof userSchema>;
+export type UserSchema = InferSchemaType<typeof userSchema>;
 
-export const User: Model<UserDoc> =
-    (models.User as Model<UserDoc>) || model<UserDoc>("User", userSchema);
+export const User: Model<UserSchema> =
+    (models.User as Model<UserSchema>) || model<UserSchema>("User", userSchema);

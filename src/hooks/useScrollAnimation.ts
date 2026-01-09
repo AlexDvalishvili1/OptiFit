@@ -1,92 +1,98 @@
-import { useEffect, useRef, useState, RefObject } from 'react';
+import {useEffect, useMemo, useRef, useState, type RefObject, createRef} from "react";
 
-interface UseScrollAnimationOptions {
-  threshold?: number;
-  rootMargin?: string;
-  triggerOnce?: boolean;
+export interface UseScrollAnimationOptions {
+    threshold?: number;
+    rootMargin?: string;
+    triggerOnce?: boolean;
 }
 
 export function useScrollAnimation<T extends HTMLElement>(
-  options: UseScrollAnimationOptions = {}
-): [RefObject<T>, boolean] {
-  const { threshold = 0.1, rootMargin = '0px', triggerOnce = true } = options;
-  const ref = useRef<T>(null);
-  const [isVisible, setIsVisible] = useState(false);
+    options: UseScrollAnimationOptions = {}
+): [RefObject<T | null>, boolean] {
+    const {threshold = 0.1, rootMargin = "0px", triggerOnce = true} = options;
 
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
+    const ref = useRef<T | null>(null);
+    const [isVisible, setIsVisible] = useState(false);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          if (triggerOnce) {
-            observer.unobserve(element);
-          }
-        } else if (!triggerOnce) {
-          setIsVisible(false);
-        }
-      },
-      { threshold, rootMargin }
-    );
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) return;
 
-    observer.observe(element);
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry?.isIntersecting) {
+                    setIsVisible(true);
+                    if (triggerOnce) observer.unobserve(element);
+                } else if (!triggerOnce) {
+                    setIsVisible(false);
+                }
+            },
+            {threshold, rootMargin}
+        );
 
-    return () => observer.disconnect();
-  }, [threshold, rootMargin, triggerOnce]);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [threshold, rootMargin, triggerOnce]);
 
-  return [ref, isVisible];
+    return [ref, isVisible];
 }
 
 export function useMultipleScrollAnimation(
-  count: number,
-  options: UseScrollAnimationOptions = {}
-): [RefObject<HTMLDivElement>[], boolean[]] {
-  const refs = useRef<RefObject<HTMLDivElement>[]>(
-    Array.from({ length: count }, () => ({ current: null }))
-  ).current;
-  const [visibleStates, setVisibleStates] = useState<boolean[]>(
-    Array(count).fill(false)
-  );
+    count: number,
+    options: UseScrollAnimationOptions = {}
+): [RefObject<HTMLDivElement | null>[], boolean[]] {
+    const {threshold = 0.1, rootMargin = "0px", triggerOnce = true} = options;
 
-  const { threshold = 0.1, rootMargin = '0px', triggerOnce = true } = options;
+    // create stable refs array (won't change between renders unless count changes)
+    const refs = useMemo(
+        () => Array.from({length: count}, () => createRef<HTMLDivElement>()),
+        [count]
+    );
 
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
+    const [visibleStates, setVisibleStates] = useState<boolean[]>(
+        () => Array(count).fill(false)
+    );
 
-    refs.forEach((ref, index) => {
-      const element = ref.current;
-      if (!element) return;
+    // keep visibleStates length in sync if count changes
+    useEffect(() => {
+        setVisibleStates((prev) => {
+            if (prev.length === count) return prev;
+            const next = Array(count).fill(false);
+            for (let i = 0; i < Math.min(prev.length, count); i++) next[i] = prev[i];
+            return next;
+        });
+    }, [count]);
 
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setVisibleStates((prev) => {
-              const newStates = [...prev];
-              newStates[index] = true;
-              return newStates;
-            });
-            if (triggerOnce) {
-              observer.unobserve(element);
-            }
-          } else if (!triggerOnce) {
-            setVisibleStates((prev) => {
-              const newStates = [...prev];
-              newStates[index] = false;
-              return newStates;
-            });
-          }
-        },
-        { threshold, rootMargin }
-      );
+    useEffect(() => {
+        const observers: IntersectionObserver[] = [];
 
-      observer.observe(element);
-      observers.push(observer);
-    });
+        refs.forEach((ref, index) => {
+            const element = ref.current;
+            if (!element) return;
 
-    return () => observers.forEach((obs) => obs.disconnect());
-  }, [refs, threshold, rootMargin, triggerOnce]);
+            const observer = new IntersectionObserver(
+                ([entry]) => {
+                    const intersecting = Boolean(entry?.isIntersecting);
 
-  return [refs, visibleStates];
+                    setVisibleStates((prev) => {
+                        // micro-opt: avoid recreating array if no change
+                        if (prev[index] === intersecting && triggerOnce) return prev;
+                        const next = [...prev];
+                        next[index] = intersecting ? true : !triggerOnce ? false : prev[index];
+                        return next;
+                    });
+
+                    if (intersecting && triggerOnce) observer.unobserve(element);
+                },
+                {threshold, rootMargin}
+            );
+
+            observer.observe(element);
+            observers.push(observer);
+        });
+
+        return () => observers.forEach((obs) => obs.disconnect());
+    }, [refs, threshold, rootMargin, triggerOnce]);
+
+    return [refs, visibleStates];
 }
