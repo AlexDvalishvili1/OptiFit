@@ -89,9 +89,19 @@ export async function POST(req: NextRequest) {
 
         const ban = user?.ban;
 
+        function toDateSafe(v: unknown): Date | null {
+            if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+            if (typeof v === "string" || typeof v === "number") {
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d;
+            }
+            return null;
+        }
+
         // ✅ If banned, return ban message
-        if (ban?.date > new Date()) {
-            const banDate = new Date(ban.date);
+        const banDate = toDateSafe(ban?.date);
+
+        if (banDate && banDate > new Date()) {
             return new Response(
                 JSON.stringify({
                     error: `You are banned until ${banDate.toDateString()} ${banDate.toLocaleTimeString()}`,
@@ -129,14 +139,17 @@ export async function POST(req: NextRequest) {
 
         const history: ChatCompletionMessageParam[] = Array.isArray(historyRaw)
             ? historyRaw
-                .map((m) => {
+                .map((m): ChatCompletionMessageParam | null => {
                     const mm = m as { role?: unknown; content?: unknown };
+                    const content = toStringOrEmpty(mm.content);
+                    if (!content) return null;
+
                     return {
                         role: toChatRole(mm.role),
-                        content: toStringOrEmpty(mm.content),
-                    } as ChatCompletionMessageParam;
+                        content,
+                    };
                 })
-                .filter((m) => m.content.length > 0)
+                .filter((x): x is ChatCompletionMessageParam => x !== null)
             : [];
 
         // ✅ Build message prompt
