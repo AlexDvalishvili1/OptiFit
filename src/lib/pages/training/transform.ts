@@ -1,4 +1,4 @@
-import type {ActiveWorkoutDay, ProgramDay} from "@/components/pages/training/types.ts";
+import type {ActiveWorkoutDay, ProgramDay} from "@/components/pages/training/types";
 
 export function toActiveWorkoutDay(day: ProgramDay): ActiveWorkoutDay {
     return {

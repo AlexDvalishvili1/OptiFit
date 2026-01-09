@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useToast} from "@/hooks/use-toast";
 import NotebookHeader from "@/components/pages/notebook/NotebookHeader";
 import NotebookEmptyCard from "@/components/pages/notebook/NotebookEmptyCard";
@@ -13,10 +13,10 @@ import type {
     ActiveWorkoutResponse,
     ProgramWeek,
     WorkoutSetData,
-} from "@/lib/pages/notebook/types.ts";
-import {normalizeWeek, todayWeekday} from "@/lib/pages/notebook/training.ts";
-import {formatTime, safeNumber} from "@/lib/pages/notebook/format.ts";
-import {makeDefaultWorkoutFromToday, validateWorkoutBeforeSave} from "@/lib/pages/notebook/workout.ts";
+} from "@/lib/pages/notebook/types";
+import {normalizeWeek, todayWeekday} from "@/lib/pages/notebook/training";
+import {formatTime, safeNumber} from "@/lib/pages/notebook/format";
+import {makeDefaultWorkoutFromToday, validateWorkoutBeforeSave} from "@/lib/pages/notebook/workout";
 
 const API = {
     getTrainingPlan: "/api/workout/plan/get",

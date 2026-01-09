@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import type {NextRequest} from "next/server";
 
-const AUTH_PAGES = ["/signin", "/register"];
+const AUTH_PAGES = ["/signin", "/register"] as const;
 
 const PROTECTED_PAGES = [
     "/dashboard",
@@ -12,16 +12,21 @@ const PROTECTED_PAGES = [
     "/analytics",
     "/profile",
     "/settings",
-];
+] as const;
 
 export function proxy(req: NextRequest) {
     const token = req.cookies.get("token")?.value;
     const {pathname} = req.nextUrl;
 
-    const isAuthPage = AUTH_PAGES.includes(pathname);
-    const isProtectedPage = PROTECTED_PAGES.some((p) =>
-        pathname.startsWith(p)
-    );
+    const isAuthPage = AUTH_PAGES.includes(pathname as (typeof AUTH_PAGES)[number]);
+    const isProtectedPage = PROTECTED_PAGES.some((p) => pathname.startsWith(p));
+
+    // ✅ Logged-in users should not see the landing page
+    if (token && pathname === "/") {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+    }
 
     // 🔁 Logged-in users should not see auth pages
     if (token && isAuthPage) {

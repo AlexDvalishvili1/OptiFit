@@ -1,6 +1,6 @@
 "use client";
 
-import {Navbar} from "@/components/layout/navbar/Navbar.tsx";
+import {Navbar} from "@/components/layout/navbar/Navbar";
 import {useScrollAnimation} from "@/hooks/useScrollAnimation";
 import {
     Brain,
@@ -9,7 +9,7 @@ import {
     BarChart3,
 } from "lucide-react";
 
-import HeroSection from "@/components/pages/landing/HeroSection.tsx";
+import HeroSection from "@/components/pages/landing/HeroSection";
 import FeaturesSection from "@/components/pages/landing/FeaturesSection";
 import HowItWorksSection from "@/components/pages/landing/HowItWorksSection";
 import CtaSection from "@/components/pages/landing/CtaSection";

@@ -8,7 +8,7 @@ import {Label} from '@/components/ui/label';
 import {Dumbbell, Mail, Lock, User, ArrowLeft, Phone} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {useRouter} from "next/navigation";
-import {normalizePhone} from "@/hooks/normalize-phone.ts";
+import {normalizePhone} from "@/hooks/normalize-phone";
 import Image from "next/image";
 
 const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/;

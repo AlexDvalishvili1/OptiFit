@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 
 import "./globals.css";
-import Providers from "@/components/layout/Providers.tsx";
+import Providers from "@/components/layout/Providers";
 import {Toaster} from "@/components/ui/toaster";
 import {Toaster as Sonner} from "@/components/ui/sonner";
 import type {Metadata} from 'next'

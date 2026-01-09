@@ -1,6 +1,6 @@
 "use client";
 
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {mockWeightData, mockCalorieData, mockVolumeData} from '@/lib/mockData';
 import {
     LineChart,

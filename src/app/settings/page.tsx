@@ -1,11 +1,11 @@
 "use client";
 
 import {useState} from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useAppStore} from "@/lib/store";
 import {useToast} from "@/hooks/use-toast";
 import {useRouter} from "next/navigation";
-import {useTheme} from "@/components/providers/ThemeProvider.tsx";
+import {useTheme} from "@/components/providers/ThemeProvider";
 import {SettingsHeader} from "@/components/pages/settings/SettingsHeader";
 import {AppearanceCard} from "@/components/pages/settings/AppearanceCard";
 import {NotificationsCard} from "@/components/pages/settings/NotificationsCard";

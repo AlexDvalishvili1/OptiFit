@@ -1,4 +1,4 @@
-import type {ProgramDay, ProgramExercise, ProgramWeek} from "@/components/pages/training/types.ts";
+import type {ProgramDay, ProgramExercise, ProgramWeek} from "@/components/pages/training/types";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 

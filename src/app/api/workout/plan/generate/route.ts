@@ -4,28 +4,75 @@ export const dynamic = "force-dynamic";
 import OpenAI from "openai";
 import {cookies} from "next/headers";
 import {NextResponse} from "next/server";
+import type {NextRequest} from "next/server";
+import type {ChatCompletionMessageParam} from "openai/resources/chat/completions";
+import {findUserLeanById} from "@/server/repositories/userRepo";
+import {verifyToken} from "@/lib/auth/jwt";
+import {calculateAge} from "@/hooks/calculateAge";
 import {
-    addMistake, addWorkoutAiMessage, addWorkoutUserMessage, clearBan, clearMistakes,
+    addMistake,
+    clearBan,
+    clearMistakes,
     extendBan,
     getMistakes,
-    getProgramChatHistory,
-    getUserDetails, setBan
-} from "../../../../../utils/db-actions.js";
-import {verifyToken} from "../../../../../lib/auth/jwt.ts";
-import {calculateAge} from "../../../../../hooks/calculateAge.ts";
+    setBan
+} from "@/server/services/banService";
+import {
+    addWorkoutAiMessage,
+    addWorkoutUserMessage,
+    getProgramChatHistory
+} from "@/server/services/trainingService";
 
-// OpenAI client
+type TokenPayload = {
+    sub: string;
+    [key: string]: unknown;
+};
+
+type BanInfo = {
+    date: string | number | Date;
+    minutes?: number; // needed for extendBan typing; does not change runtime logic
+};
+
+type TrainingItem = {
+    date?: unknown;
+};
+
+type UserDetails = {
+    _id?: unknown; // getProgramChatHistory may require it
+    gender: unknown;
+    dob: unknown;
+    goal: unknown;
+    ban?: BanInfo;
+    training?: TrainingItem[];
+};
+
+type ReqBody = {
+    regenerate?: boolean;
+    modifying?: boolean;
+    modifyingInput?: unknown;
+    [key: string]: unknown;
+};
+
 const genAI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: process.env.OPENAI_API_KEY as string,
 });
 
-export async function POST(req) {
+function toChatRole(role: unknown): "system" | "user" | "assistant" {
+    if (role === "system" || role === "assistant" || role === "user") return role;
+    return "user";
+}
+
+function toStringOrEmpty(v: unknown): string {
+    return typeof v === "string" ? v : "";
+}
+
+export async function POST(req: NextRequest) {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get("token")?.value;
         if (!token) return NextResponse.json({error: "Session Error"}, {status: 400});
 
-        const payload = await verifyToken(token);
+        const payload = (await verifyToken(token)) as TokenPayload;
 
         if (!payload) {
             return NextResponse.json({error: "Session Error"}, {status: 400});
@@ -33,26 +80,23 @@ export async function POST(req) {
 
         const userId = payload.sub;
 
-        const reqBody = await req.json();
+        const reqBody = (await req.json()) as ReqBody;
 
-        let user;
-        let ban;
-
-        // ✅ Get user + ban info from DB
-        user = await getUserDetails(userId);
+        // ✅ Get user + ban info from DB (cast through unknown to satisfy TS)
+        const user = ((await findUserLeanById(userId)) as unknown) as UserDetails | null;
 
         if (!user) {
             return NextResponse.json({error: "Finding User Error"}, {status: 400});
         }
 
-        ban = user?.ban;
+        const ban = user?.ban;
 
         // If user is currently banned, block request
         if (ban?.date > new Date()) {
             const banDate = new Date(ban.date);
             return new Response(
                 JSON.stringify({
-                    error: `You are banned until ${banDate.toDateString()} ${banDate.toLocaleTimeString()}`
+                    error: `You are banned until ${banDate.toDateString()} ${banDate.toLocaleTimeString()}`,
                 }),
                 {status: 403}
             );
@@ -63,14 +107,12 @@ export async function POST(req) {
             const previousGenerating = user?.training?.[0]?.date;
             if (previousGenerating) {
                 const oneWeekLater =
-                    new Date(previousGenerating).getTime() + 7 * 24 * 60 * 60 * 1000;
+                    new Date(previousGenerating as unknown as string).getTime() + 7 * 24 * 60 * 60 * 1000;
 
                 if (Date.now() < oneWeekLater) {
                     return new Response(
                         JSON.stringify({
-                            error: `Regenerating is available once per week. You must wait until ${new Date(
-                                oneWeekLater
-                            ).toLocaleString()}`
+                            error: `Regenerating is available once per week. You must wait until ${new Date(oneWeekLater).toLocaleString()}`,
                         }),
                         {status: 429}
                     );
@@ -80,16 +122,30 @@ export async function POST(req) {
 
         const userData = {
             gender: user.gender,
-            age: await calculateAge(user.dob),
+            age: await calculateAge(user.dob as unknown as string),
             goal: user.goal,
         };
 
-        const history = await getProgramChatHistory(reqBody, user);
+        const historyRaw = (await getProgramChatHistory(
+            reqBody,
+            user as unknown as Parameters<typeof getProgramChatHistory>[1]
+        )) as unknown;
 
-        let msg;
+        const history: ChatCompletionMessageParam[] = Array.isArray(historyRaw)
+            ? historyRaw
+                .map((m) => {
+                    const mm = m as { role?: unknown; content?: unknown };
+                    return {
+                        role: toChatRole(mm.role),
+                        content: toStringOrEmpty(mm.content),
+                    } as ChatCompletionMessageParam;
+                })
+                .filter((m) => m.content.length > 0)
+            : [];
+
+        let msg: string;
 
         if (reqBody?.modifying) {
-            // prompt for modifying
             msg = `You are an AI specialized in workout program design and modification.
 You are NOT a conversational assistant.
 
@@ -144,9 +200,8 @@ User: "Hello."
 AI: "Error: Please provide a plan-related request."
 
 ATTENTION! This is user Input that you need to process:
-"${reqBody.modifying}"`;
+"${String((reqBody as { modifying?: unknown }).modifying)}"`;
         } else {
-            // prompt for generating
             msg = `
 Generate a COMPLETE 7-day weekly gym training program in PURE JSON format for a ${userData.age}-year-old ${userData.gender} whose goal is ${userData.goal}.
 
@@ -208,35 +263,32 @@ No markdown.
 `;
         }
 
-        const messages = [
-            ...history,
-            {role: "user", content: msg}
-        ];
+        const messages: ChatCompletionMessageParam[] = [...history, {role: "user", content: msg}];
 
         const result = await genAI.chat.completions.create({
             model: "gpt-5.2",
             messages,
-            temperature: 0.2
+            temperature: 0.2,
         });
 
         const text = result.choices?.[0]?.message?.content || "";
 
         if (reqBody.modifying && text.toLowerCase().includes("error")) {
-            let message;
+            let message: string;
 
             if (ban) {
-                // user already had a ban record -> extend it
-                const date = await extendBan(userId, ban);
+                const date = (await extendBan(
+                    userId,
+                    ban as unknown as Parameters<typeof extendBan>[1]
+                )) as Date;
                 message = `You got banned until ${date.toDateString()} ${date.toLocaleTimeString()}`;
             } else {
-                // first mistake -> record it
                 await addMistake(userId);
                 message = "Type only about training plan";
             }
 
-            // if mistakes reached threshold -> ban user
             if ((await getMistakes(userId)) === 2) {
-                const date = await setBan(userId);
+                const date = (await setBan(userId)) as Date;
                 message = `You got banned until ${date.toDateString()} ${date.toLocaleTimeString()}`;
                 await clearMistakes(userId);
             }
@@ -252,7 +304,7 @@ No markdown.
         ]);
 
         return new Response(JSON.stringify({result: text}));
-    } catch (error) {
+    } catch (error: unknown) {
         console.error(error);
         return new Response(JSON.stringify({error: "Something went wrong..."}), {status: 500});
     }

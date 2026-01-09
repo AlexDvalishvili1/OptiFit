@@ -1,19 +1,42 @@
-import {connectDB} from "../../../../lib/db.ts";
-import {User} from "../../../../models/User.ts";
-import {signToken} from "../../../../lib/auth/jwt.ts";
+import {connectDB} from "@/server/db/connect";
+import {User} from "@/server/models/User";
+import {signToken} from "@/lib/auth/jwt";
 import {NextResponse} from "next/server";
-import {normalizePhone} from "../../../../hooks/normalize-phone.ts";
+import {normalizePhone} from "@/hooks/normalize-phone";
+import type {NextRequest} from "next/server";
 
-export async function POST(req) {
+type RegisterBody = {
+    name?: unknown;
+    email?: unknown;
+    phone?: unknown;
+    password?: unknown;
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+    return typeof v === "object" && v !== null;
+}
+
+function toStringOrEmpty(v: unknown): string {
+    return typeof v === "string" ? v : "";
+}
+
+type MongoDupKeyError = {
+    code?: number;
+    keyPattern?: Record<string, unknown>;
+    keyValue?: Record<string, unknown>;
+};
+
+export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
-        const data = await req.json();
+        const raw: unknown = await req.json();
+        const data: RegisterBody = isRecord(raw) ? (raw as RegisterBody) : {};
 
-        const name = (data?.name ?? "").trim();
-        const email = (data?.email ?? "").trim().toLowerCase();
-        const phone = normalizePhone(data?.phone ?? "");
-        const password = data?.password ?? "";
+        const name = toStringOrEmpty(data?.name).trim();
+        const email = toStringOrEmpty(data?.email).trim().toLowerCase();
+        const phone = normalizePhone(toStringOrEmpty(data?.phone));
+        const password = toStringOrEmpty(data?.password);
 
         if (!email || !phone || !password) {
             return NextResponse.json(
@@ -22,7 +45,11 @@ export async function POST(req) {
             );
         }
 
-        const exists = await User.findOne({$or: [{email}, {phone}]})
+        // Fix for strict/incorrect mongoose typings in this project: allow `$or` query shape.
+        type FindOneArg = Parameters<typeof User.findOne>[0];
+        const existsQuery = ({$or: [{email}, {phone}]} as unknown) as FindOneArg;
+
+        const exists = await User.findOne(existsQuery)
             .select("_id email phone")
             .lean();
 
@@ -62,11 +89,13 @@ export async function POST(req) {
         });
 
         return res;
-    } catch (err) {
+    } catch (err: unknown) {
         console.error("Registration error:", err);
 
-        if (err?.code === 11000) {
-            const field = Object.keys(err.keyPattern || err.keyValue || {})[0] || "field";
+        const e = err as MongoDupKeyError;
+
+        if (e?.code === 11000) {
+            const field = Object.keys(e.keyPattern || e.keyValue || {})[0] || "field";
             return NextResponse.json(
                 {error: `Account with this ${field} already exists.`},
                 {status: 409}

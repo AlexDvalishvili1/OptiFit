@@ -1,19 +1,19 @@
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useToast} from "@/hooks/use-toast";
-import DashboardHeader from "@/components/pages/dashboard/DashboardHeader.tsx";
+import DashboardHeader from "@/components/pages/dashboard/DashboardHeader";
 import StatsGrid from "@/components/pages/dashboard/StatsGrid";
 import TodayOverview from "@/components/pages/dashboard/TodayOverview";
 import QuickActions from "@/components/pages/dashboard/QuickActions";
 import {postJson} from "@/lib/api/postJson";
 import {readJsonSafe} from "@/lib/api/readJsonSafe";
-import type {DbUser, DietPlan, ProgramWeek, WorkoutHistoryItem} from "@/lib/pages/dashboard/types.ts";
-import {todayWeekday, parseISODate, startOfWeekMonday, endOfWeekSunday} from "@/lib/pages/dashboard/date.ts";
-import {normalizeWeek} from "@/lib/pages/dashboard/training.ts";
-import {normalizeDiet} from "@/lib/pages/dashboard/diet.ts";
-import {goalLabels, activityLabels} from "@/lib/pages/dashboard/labels.ts";
+import type {DbUser, DietPlan, ProgramWeek, WorkoutHistoryItem} from "@/lib/pages/dashboard/types";
+import {todayWeekday, parseISODate, startOfWeekMonday, endOfWeekSunday} from "@/lib/pages/dashboard/date";
+import {normalizeWeek} from "@/lib/pages/dashboard/training";
+import {normalizeDiet} from "@/lib/pages/dashboard/diet";
+import {goalLabels, activityLabels} from "@/lib/pages/dashboard/labels";
 
 const API = {
     getTraining: "/api/workout/plan/get",

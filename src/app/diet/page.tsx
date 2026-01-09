@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useToast} from "@/hooks/use-toast";
 import DietHeader from "@/components/pages/diet/DietHeader";
 import DietEmptyState from "@/components/pages/diet/DietEmptyState";
@@ -9,9 +9,9 @@ import DietMacroOverview from "@/components/pages/diet/DietMacroOverview";
 import DietModifyCard from "@/components/pages/diet/DietModifyCard";
 import DietMealCard from "@/components/pages/diet/DietMealCard";
 import {postJson} from "@/lib/api/postJson";
-import type {DietPlan} from "@/lib/pages/diet/types.ts";
-import {tryParseDietJson} from "@/lib/pages/diet/parse.ts";
-import {calcMealTotals} from "@/lib/pages/diet/totals.ts";
+import type {DietPlan} from "@/lib/pages/diet/types";
+import {tryParseDietJson} from "@/lib/pages/diet/parse";
+import {calcMealTotals} from "@/lib/pages/diet/totals";
 
 const API = {
     getDietByDate: "/api/diet/get", // POST { date }

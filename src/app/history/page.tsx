@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useToast} from "@/hooks/use-toast";
 
 import HistoryHeader from "@/components/pages/history/HistoryHeader";
@@ -10,9 +10,9 @@ import HistoryEmpty from "@/components/pages/history/HistoryEmpty";
 import HistoryWorkoutCard from "@/components/pages/history/HistoryWorkoutCard";
 
 import {postJson} from "@/lib/api/postJson";
-import type {HistoryItem} from "@/lib/pages/history/types.ts";
-import {formatDate, formatDuration} from "@/lib/pages/history/format.ts";
-import {getTotalSets, getTotalVolume} from "@/lib/pages/history/stats.ts";
+import type {HistoryItem} from "@/lib/pages/history/types";
+import {formatDate, formatDuration} from "@/lib/pages/history/format";
+import {getTotalSets, getTotalVolume} from "@/lib/pages/history/stats";
 
 const API = {
     getHistory: "/api/workout/get/history",

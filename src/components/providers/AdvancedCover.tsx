@@ -1,18 +1,12 @@
 "use client";
 
+import * as React from "react";
 import {useEffect} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {Button} from "@/components/ui/button";
 import {useAuth} from "@/components/providers/AuthProvider";
 
-const GUARDED_PATHS = [
-    "/dashboard",
-    "/training",
-    "/diet",
-    "/notebook",
-    "/history",
-    "/analytics",
-];
+const GUARDED_PATHS = ["/dashboard", "/training", "/diet", "/notebook", "/history", "/analytics"] as const;
 
 export function AdvancedCover({children}: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -21,17 +15,21 @@ export function AdvancedCover({children}: { children: React.ReactNode }) {
 
     const isGuarded = GUARDED_PATHS.some((p) => pathname.startsWith(p));
 
+    // Редирект только после того, как auth загрузился
+    useEffect(() => {
+        if (!isGuarded) return;
+        if (loading) return;
+        if (!user) router.replace("/");
+    }, [isGuarded, loading, user, router]);
+
     // не guarded -> всё ок
     if (!isGuarded) return <>{children}</>;
 
-    // пока auth грузится — не блокируем UI
+    // пока auth грузится — не блокируем UI (можно оставить children или показать skeleton)
     if (loading) return <>{children}</>;
 
-    // если не залогинен — пусть редиректит
-    if (!user) {
-        router.replace("/");
-        return null;
-    }
+    // если не залогинен — мы уже запускаем replace в useEffect, тут просто не рендерим
+    if (!user) return null;
 
     // advanced -> доступ
     if (user.advanced) return <>{children}</>;
@@ -39,16 +37,12 @@ export function AdvancedCover({children}: { children: React.ReactNode }) {
     // не advanced -> cover
     return (
         <div className="relative">
-            <div className="pointer-events-none select-none blur-[2px] opacity-60">
-                {children}
-            </div>
+            <div className="pointer-events-none select-none blur-[2px] opacity-60">{children}</div>
 
             <div
                 className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
                 <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-lg">
-                    <h2 className="font-display text-xl font-bold mb-2">
-                        Complete your profile to continue
-                    </h2>
+                    <h2 className="font-display text-xl font-bold mb-2">Complete your profile to continue</h2>
                     <p className="text-sm text-muted-foreground mb-5">
                         To generate workouts, diet plans, and analytics, please fill in required profile details.
                     </p>

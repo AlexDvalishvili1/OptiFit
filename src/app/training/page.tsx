@@ -2,18 +2,18 @@
 
 import * as React from "react";
 import {useRouter} from "next/navigation";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useToast} from "@/hooks/use-toast";
-import type {ProgramDay, ProgramWeek} from "@/components/pages/training/types.ts";
+import type {ProgramDay, ProgramWeek} from "@/components/pages/training/types";
 import TrainingHeader from "@/components/pages/training/TrainingHeader";
 import TrainingEmptyState from "@/components/pages/training/TrainingEmptyState";
 import TrainingModifyCard from "@/components/pages/training/TrainingModifyCard";
 import TrainingDayCard from "@/components/pages/training/TrainingDayCard";
 import {postJson} from "@/lib/api/postJson";
-import {normalizeWeek, todayWeekday} from "@/lib/pages/training/plan.ts";
-import {getLocalNumber, LS_KEYS, setLocalNumber, todayISODateKey} from "@/lib/pages/training/storage.ts";
-import {toActiveWorkoutDay} from "@/lib/pages/training/transform.ts";
-import {parseJsonSafe} from "@/lib/api/parseJsonSafe.ts";
+import {normalizeWeek, todayWeekday} from "@/lib/pages/training/plan";
+import {getLocalNumber, LS_KEYS, setLocalNumber, todayISODateKey} from "@/lib/pages/training/storage";
+import {toActiveWorkoutDay} from "@/lib/pages/training/transform";
+import {parseJsonSafe} from "@/lib/api/parseJsonSafe";
 
 const API = {
     getTraining: "/api/workout/plan/get",

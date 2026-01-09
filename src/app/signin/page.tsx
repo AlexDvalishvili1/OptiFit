@@ -8,7 +8,7 @@ import {Label} from "@/components/ui/label";
 import {Dumbbell, Lock, ArrowLeft, Mail, Phone} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
 import {useRouter} from "next/navigation";
-import {normalizePhone} from "@/hooks/normalize-phone.ts";
+import {normalizePhone} from "@/hooks/normalize-phone";
 import Image from "next/image";
 
 export default function SignIn() {
