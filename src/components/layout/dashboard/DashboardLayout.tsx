@@ -6,35 +6,14 @@ import {cn} from "@/lib/utils";
 
 import DashboardHeaderMobile from "./DashboardHeaderMobile";
 import DashboardSidebar from "./DashboardSidebar";
-
-type AuthUser =
-    | { id: string; name?: string; email: string; phone: string }
-    | null;
+import {useAuth} from "@/components/providers/AuthProvider";
 
 export function DashboardLayout({children}: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const [user, setUser] = useState<AuthUser>(null);
-    const [loading, setLoading] = useState(true);
-
-    const refreshMe = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/auth/me", {credentials: "include"});
-            const json = await res.json();
-            setUser(json.user ?? null);
-        } catch {
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        refreshMe();
-    }, []);
+    const {user, loading, setUser} = useAuth();
 
     useEffect(() => {
         if (!loading && !user) router.replace("/");
@@ -55,10 +34,7 @@ export function DashboardLayout({children}: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-background">
-            <DashboardHeaderMobile
-                open={sidebarOpen}
-                onToggle={() => setSidebarOpen((v) => !v)}
-            />
+            <DashboardHeaderMobile open={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)}/>
 
             <DashboardSidebar
                 open={sidebarOpen}

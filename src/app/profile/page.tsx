@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {useEffect, useState} from "react";
-import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout.tsx";
+import {useEffect, useMemo, useState} from "react";
+import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {Button} from "@/components/ui/button";
 import {Save} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
@@ -10,9 +10,11 @@ import {ProfileHeader} from "@/components/pages/profile/ProfileHeader";
 import {AvatarCard} from "@/components/pages/profile/AvatarCard";
 import {PersonalInfoSection} from "@/components/pages/profile/PersonalInfoSection";
 import {FitnessPreferencesSection} from "@/components/pages/profile/FitnessPreferencesSection";
-import {readJsonSafe} from "@/lib/api/readJsonSafe";
-import type {MeUser, ProfileFormData} from "@/lib/pages/profile/types.ts";
-import {formDataToPatchPayload, userToFormData} from "@/lib/pages/profile/mappers.ts";
+import type {MeUser, ProfileFormData} from "@/lib/pages/profile/types";
+import {formDataToPatchPayload, userToFormData} from "@/lib/pages/profile/mappers";
+import {useAuth} from "@/components/providers/AuthProvider";
+
+type ActivityLevelOption = { value: string; label: string };
 
 const ALLERGY_OPTIONS = [
     "Lactose",
@@ -41,14 +43,14 @@ const ALLERGY_OPTIONS = [
     "Spices",
     "Chocolate",
     "Yeast",
-];
+] satisfies string[];
 
 const ACTIVITY_LEVELS = [
     {value: "sedentary", label: "Sedentary — little or no exercise"},
     {value: "light", label: "Light — exercise 1–3 times per week"},
     {value: "moderate", label: "Moderate — exercise 4–5 times per week"},
     {value: "very_active", label: "Very Active — intense exercise 6–7 times per week"},
-];
+] satisfies ActivityLevelOption[];
 
 const DEFAULT_FORM: ProfileFormData = {
     name: "",
@@ -62,86 +64,61 @@ const DEFAULT_FORM: ProfileFormData = {
     allergies: [],
 };
 
-type ApiMeResp = { user?: unknown; result?: unknown; error?: unknown };
-type ApiProfileResp = { user?: unknown; result?: unknown; error?: unknown };
-
 type UnknownRecord = Record<string, unknown>;
 
 function isObject(v: unknown): v is UnknownRecord {
     return typeof v === "object" && v !== null;
 }
 
-function get(obj: unknown, key: string): unknown {
-    return isObject(obj) ? obj[key] : undefined;
-}
-
-// Minimal guard so TS allows userToFormData(user, prev)
 function isMeUser(v: unknown): v is Exclude<MeUser, null> {
     if (!isObject(v)) return false;
 
-    // Require the stable “identity” fields you showed in your MeUser type
-    const id = v.id;
-    const email = v.email;
-    const phone = v.phone;
+    const id = v["id"];
+    const email = v["email"];
+    const phone = v["phone"];
 
     return typeof id === "string" && typeof email === "string" && typeof phone === "string";
 }
 
 export default function Profile() {
     const {toast} = useToast();
+    const {user, loading: loadingMe, refresh} = useAuth();
 
-    const [loadingMe, setLoadingMe] = useState(true);
     const [loading, setLoading] = useState(false);
     const [allergyPopoverOpen, setAllergyPopoverOpen] = useState(false);
 
+    // Keep local "me" only if you still need it for something else
     const [me, setMe] = useState<MeUser>(null);
     const [formData, setFormData] = useState<ProfileFormData>(DEFAULT_FORM);
 
+    // Sync local state from AuthProvider once it loads / changes
     useEffect(() => {
-        let cancelled = false;
+        if (loadingMe) return;
 
-        (async () => {
-            setLoadingMe(true);
-            try {
-                const res = await fetch("/api/auth/me", {credentials: "include"});
-                const json = (await readJsonSafe(res)) as ApiMeResp;
+        const u = isMeUser(user) ? (user as Exclude<MeUser, null>) : null;
+        setMe(u);
 
-                const userUnknown = get(json, "user") ?? get(json, "result") ?? null;
-
-                if (!cancelled) {
-                    setMe(isMeUser(userUnknown) ? userUnknown : null);
-                }
-
-                if (!cancelled && isMeUser(userUnknown)) {
-                    setFormData((prev) => userToFormData(userUnknown, prev));
-                }
-            } catch {
-                if (!cancelled) setMe(null);
-            } finally {
-                if (!cancelled) setLoadingMe(false);
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+        if (u) {
+            setFormData((prev) => userToFormData(u, prev));
+        } else {
+            setFormData(DEFAULT_FORM);
+        }
+    }, [loadingMe, user]);
 
     const handleChange = <K extends keyof ProfileFormData>(field: K, value: ProfileFormData[K]) => {
         setFormData((prev) => ({...prev, [field]: value}));
     };
 
     const toggleAllergy = (allergy: string) => {
-        const current = formData.allergies;
-        const next = current.includes(allergy) ? current.filter((a) => a !== allergy) : [...current, allergy];
-        handleChange("allergies", next);
+        setFormData((prev) => {
+            const current = prev.allergies;
+            const next = current.includes(allergy) ? current.filter((a) => a !== allergy) : [...current, allergy];
+            return {...prev, allergies: next};
+        });
     };
 
     const removeAllergy = (allergy: string) => {
-        handleChange(
-            "allergies",
-            formData.allergies.filter((a) => a !== allergy)
-        );
+        setFormData((prev) => ({...prev, allergies: prev.allergies.filter((a) => a !== allergy)}));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -156,14 +133,13 @@ export default function Profile() {
                 body: JSON.stringify(formDataToPatchPayload(formData)),
             });
 
-            const json = (await readJsonSafe(res)) as ApiProfileResp;
+            const json = (await res.json().catch(() => ({}))) as { error?: unknown; user?: unknown; result?: unknown };
 
-            const err = get(json, "error");
             if (!res.ok) {
                 toast({
                     variant: "destructive",
                     title: "Profile update failed",
-                    description: err ? String(err) : "Something went wrong",
+                    description: json?.error ? String(json.error) : "Something went wrong",
                 });
                 return;
             }
@@ -174,8 +150,12 @@ export default function Profile() {
                 description: "Your profile has been saved successfully.",
             });
 
-            const userUnknown = get(json, "user") ?? get(json, "result") ?? null;
-            setMe(isMeUser(userUnknown) ? userUnknown : me);
+            // Ensure the whole app updates (AdvancedCover / Navbar / layouts)
+            await refresh();
+
+            // Optional: keep local "me" in sync if your API returns it
+            const userUnknown = json.user ?? json.result ?? null;
+            if (isMeUser(userUnknown)) setMe(userUnknown);
         } catch {
             toast({
                 variant: "destructive",
@@ -187,12 +167,16 @@ export default function Profile() {
         }
     };
 
+    // For AvatarCard, use current formData (editable) + loadingMe from provider
+    const avatarName = useMemo(() => formData.name, [formData.name]);
+    const avatarEmail = useMemo(() => formData.email, [formData.email]);
+
     return (
         <DashboardLayout>
             <div className="max-w-2xl mx-auto space-y-8">
                 <ProfileHeader/>
 
-                <AvatarCard loadingMe={loadingMe} name={formData.name} email={formData.email}/>
+                <AvatarCard loadingMe={loadingMe} name={avatarName} email={avatarEmail}/>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <PersonalInfoSection formData={formData} onChange={handleChange}/>

@@ -1,17 +1,14 @@
 "use client";
 
 import {Menu, X} from "lucide-react";
-import {useEffect, useMemo, useState} from "react";
+import {useMemo, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
-
-type AuthUser =
-    | { id: string; name?: string; email: string; phone: string }
-    | null;
+import {useAuth} from "@/components/providers/AuthProvider";
 
 const PROTECTED_PAGES = [
     "/dashboard",
@@ -29,32 +26,12 @@ export function Navbar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const [user, setUser] = useState<AuthUser>(null);
-    const [loading, setLoading] = useState(true);
+    const {user, loading, setUser, refresh} = useAuth();
 
     const isProtectedPage = useMemo(
         () => PROTECTED_PAGES.some((p) => pathname.startsWith(p)),
         [pathname]
     );
-
-    const refreshMe = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/auth/me", {credentials: "include"});
-            const json = await res.json();
-            setUser(json.user ?? null);
-        } catch {
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (isProtectedPage) return;
-        refreshMe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isProtectedPage]);
 
     const handleLogout = async () => {
         try {
@@ -64,6 +41,8 @@ export function Navbar() {
             setMobileMenuOpen(false);
             router.push("/");
             router.refresh();
+            // опционально: refresh(), если хочешь гарантированно синкнуться с сервером
+            // await refresh();
         }
     };
 

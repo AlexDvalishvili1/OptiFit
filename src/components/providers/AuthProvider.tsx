@@ -1,16 +1,22 @@
 "use client";
 
 import React, {createContext, useContext, useEffect, useState} from "react";
+import type {AuthUser} from "@/lib/auth/types";
 
-type AuthUser = { id: string; name?: string; email: string; phone: string } | null;
-
-const AuthContext = createContext<{
+type AuthContextValue = {
     user: AuthUser;
     loading: boolean;
     refresh: () => Promise<void>;
-}>({
-    user: null, loading: true, refresh: async () => {
-    }
+    setUser: React.Dispatch<React.SetStateAction<AuthUser>>;
+};
+
+const AuthContext = createContext<AuthContextValue>({
+    user: null,
+    loading: true,
+    refresh: async () => {
+    },
+    setUser: () => {
+    },
 });
 
 export function AuthProvider({children}: { children: React.ReactNode }) {
@@ -21,8 +27,10 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
         setLoading(true);
         try {
             const res = await fetch("/api/auth/me", {credentials: "include"});
-            const json = await res.json();
+            const json = await res.json().catch(() => ({}));
             setUser(json.user ?? null);
+        } catch {
+            setUser(null);
         } finally {
             setLoading(false);
         }
@@ -33,7 +41,7 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{user, loading, refresh}}>
+        <AuthContext.Provider value={{user, loading, refresh, setUser}}>
             {children}
         </AuthContext.Provider>
     );
