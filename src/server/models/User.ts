@@ -1,4 +1,4 @@
-import {model, models, Schema, type InferSchemaType, type Model} from "mongoose";
+import {model, models, Schema, type InferSchemaType, type Model, type HydratedDocument} from "mongoose";
 import bcrypt from "bcryptjs";
 
 const userSchema = new Schema({
@@ -30,7 +30,6 @@ const userSchema = new Schema({
     emailVerified: {type: Boolean},
     advanced: {type: Boolean},
 
-    // пока оставляем как у тебя (позже улучшим)
     allergies: [{type: Object}],
     diets: [{type: Object}],
     training: [{type: Object}],
@@ -47,6 +46,7 @@ userSchema.pre("save", async function () {
 });
 
 export type UserSchema = InferSchemaType<typeof userSchema>;
+export type UserDoc = HydratedDocument<UserSchema>;
 
 export const User: Model<UserSchema> =
     (models.User as Model<UserSchema>) || model<UserSchema>("User", userSchema);

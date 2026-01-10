@@ -3,13 +3,13 @@ import {SignJWT, jwtVerify} from "jose";
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
 export type JwtPayload = {
-    sub: string; // user id
+    sub: string;
     email: string;
+    onboarded?: boolean; // <= новое
 };
 
 export async function signToken(payload: JwtPayload) {
     const expiresIn = "365d";
-
     return new SignJWT(payload)
         .setProtectedHeader({alg: "HS256"})
         .setIssuedAt()
@@ -19,5 +19,5 @@ export async function signToken(payload: JwtPayload) {
 
 export async function verifyToken(token: string) {
     const {payload} = await jwtVerify(token, secret);
-    return payload; // has sub/email/iat/exp
+    return payload;
 }

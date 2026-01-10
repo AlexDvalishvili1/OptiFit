@@ -1,14 +1,11 @@
 import {NextResponse} from "next/server";
-import {connectDB} from "@/server/db/connect";
-import {User} from "@/server/models/User";
-import {verifyToken} from "@/lib/auth/jwt";
-import {cookies} from "next/headers";
 import type {NextRequest} from "next/server";
+import {cookies} from "next/headers";
+import {connectDB} from "@/server/db/connect";
+import {User, type UserDoc} from "@/server/models/User";
+import {verifyToken, signToken} from "@/lib/auth/jwt";
 
-type TokenPayload = {
-    sub: string;
-    [key: string]: unknown;
-};
+type TokenPayload = { sub: string; [key: string]: unknown };
 
 type ProfilePatchBody = {
     name?: unknown;
@@ -33,11 +30,6 @@ type UserUpdate = {
     goal?: string;
     allergies?: unknown[];
     advanced?: boolean;
-};
-
-type UserDoc = {
-    save: () => Promise<unknown>;
-    [key: string]: unknown;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -81,20 +73,49 @@ export async function PATCH(req: NextRequest) {
 
         update.advanced = true;
 
-        // ✅ no-any mongoose escape hatch
-        const UserModel = User as unknown as {
-            findById: (id: string) => Promise<UserDoc | null>;
-        };
-
-        const user = await UserModel.findById(userId);
-        if (!user) {
-            return NextResponse.json({error: "User not found"}, {status: 404});
-        }
+        const user: UserDoc | null = await User.findById(userId);
+        if (!user) return NextResponse.json({error: "User not found"}, {status: 404});
 
         Object.assign(user, update);
         await user.save();
 
-        return NextResponse.json(JSON.stringify({success: true}), {status: 200});
+        // user._id and user.email are now properly typed
+        const newToken = await signToken({
+            sub: user._id.toString(),
+            email: user.email,
+            onboarded: !!user.advanced,
+        });
+
+        const res = NextResponse.json(
+            {
+                success: true,
+                user: {
+                    id: user._id.toString(),
+                    name: user.name ?? null,
+                    email: user.email,
+                    phone: user.phone,
+                    gender: (user.gender as "male" | "female" | undefined) ?? null, // schema currently has gender: String
+                    dob: user.dob instanceof Date ? user.dob.toISOString() : null,
+                    height: typeof user.height === "number" ? user.height : null,
+                    weight: typeof user.weight === "number" ? user.weight : null,
+                    activity: user.activity ?? null,
+                    goal: user.goal ?? null,
+                    allergies: user.allergies ?? [],
+                    advanced: !!user.advanced,
+                },
+            },
+            {status: 200}
+        );
+
+        res.cookies.set("token", newToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 365,
+        });
+
+        return res;
     } catch (err: unknown) {
         console.error("Profile update error:", err);
         return NextResponse.json({error: "Internal server error"}, {status: 500});

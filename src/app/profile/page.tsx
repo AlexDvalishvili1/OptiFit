@@ -13,6 +13,7 @@ import {FitnessPreferencesSection} from "@/components/pages/profile/FitnessPrefe
 import type {MeUser, ProfileFormData} from "@/lib/pages/profile/types";
 import {formDataToPatchPayload, userToFormData} from "@/lib/pages/profile/mappers";
 import {useAuth} from "@/components/providers/AuthProvider";
+import {useRouter} from "next/navigation";
 
 type ActivityLevelOption = { value: string; label: string };
 
@@ -82,6 +83,7 @@ function isMeUser(v: unknown): v is Exclude<MeUser, null> {
 
 export default function Profile() {
     const {toast} = useToast();
+    const router = useRouter();
     const {user, loading: loadingMe, refresh} = useAuth();
 
     const [loading, setLoading] = useState(false);
@@ -152,6 +154,7 @@ export default function Profile() {
 
             // Ensure the whole app updates (AdvancedCover / Navbar / layouts)
             await refresh();
+            router.refresh();
 
             // Optional: keep local "me" in sync if your API returns it
             const userUnknown = json.user ?? json.result ?? null;
