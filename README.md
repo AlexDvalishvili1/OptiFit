@@ -71,7 +71,7 @@ AI-generated plans, **modify plans with prompts**, and track workouts over time 
     ```sh
     MONGODB_URI=your-mongodb-uri
     JWT_SECRET=your-jwt-secret
-    OPENAI_API_KEY=your-openai-api-key
+    OPENAI_API=your-openai-api-key
     ```
 
 ### Running the Project

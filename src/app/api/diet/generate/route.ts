@@ -50,9 +50,9 @@ type UserDetails = {
     ban?: BanInfo;
 };
 
-// ✅ OpenAI client using API key from .env (OPENAI_API_KEY)
+// ✅ OpenAI client using API key from .env (OPENAI_API)
 const genAI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY as string,
+    apiKey: process.env.OPENAI_API as string,
 });
 
 function toChatRole(role: unknown): "system" | "user" | "assistant" {

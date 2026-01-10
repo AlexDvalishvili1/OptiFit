@@ -54,7 +54,7 @@ type ReqBody = {
 };
 
 const genAI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY as string,
+    apiKey: process.env.OPENAI_API as string,
 });
 
 function toChatRole(role: unknown): "system" | "user" | "assistant" {
