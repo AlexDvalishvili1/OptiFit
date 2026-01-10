@@ -40,6 +40,10 @@ export async function POST() {
 
         return new Response(JSON.stringify({result: reversed}));
     } catch (error: unknown) {
-        return new Response(JSON.stringify({error: "Getting user data failed"}));
+        console.error("GET USER DATA FAILED:", error);
+        return NextResponse.json(
+            {error: "Getting user data failed"},
+            {status: 500}
+        );
     }
 }
