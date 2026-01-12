@@ -9,6 +9,7 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {useToast} from "@/hooks/use-toast";
+import {cn} from "@/lib/utils";
 
 import {
     ArrowLeft,
@@ -19,6 +20,11 @@ import {
     User,
     CheckCircle2,
     AlertCircle,
+    Smartphone,
+    KeyRound,
+    ShieldCheck,
+    RotateCcw,
+    ChevronRight,
 } from "lucide-react";
 
 import {PhoneInput} from "react-international-phone";
@@ -61,6 +67,103 @@ function isFirebaseExpectedCode(code: string) {
     );
 }
 
+function maskedPhone(p: string) {
+    if (!p) return "";
+    const clean = p.trim();
+    if (clean.length <= 6) return clean;
+    return `${clean.slice(0, 4)}******${clean.slice(-3)}`;
+}
+
+/** === UI pieces === */
+
+function Stepper({step}: { step: Step }) {
+    const items = [
+        {n: 1, label: "Phone", sub: "Enter number"},
+        {n: 2, label: "OTP", sub: "Confirm code"},
+        {n: 3, label: "Details", sub: "Create account"},
+    ] as const;
+
+    return (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3 max-[350px]:gap-2">
+                {items.map((it, idx) => {
+                    const done = step > it.n;
+                    const active = step === it.n;
+
+                    return (
+                        <div key={it.n} className="flex-1">
+                            <div className="flex items-center gap-3 max-[350px]:gap-1.5">
+                                <div
+                                    className={cn(
+                                        "h-8 w-8 rounded-full border flex items-center justify-center text-xs font-semibold",
+                                        done && "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+                                        active && !done && "border-white/20 bg-white/5 text-white",
+                                        !active && !done && "border-white/10 text-white/55"
+                                    )}
+                                >
+                                    {done ? <CheckCircle2 className="h-4 w-4"/> : it.n}
+                                </div>
+
+                                <div className="min-w-0">
+                                    <div
+                                        className={cn("text-xs font-semibold", active ? "text-white" : "text-white/70")}>
+                                        {it.label}
+                                    </div>
+                                    <div className="text-[11px] text-white/45">{it.sub}</div>
+                                </div>
+                            </div>
+
+                            {/* connector */}
+                            {idx < items.length - 1 ? (
+                                <div className="mt-3 h-[2px] w-full rounded-full bg-white/10">
+                                    <div
+                                        className={cn(
+                                            "h-[2px] rounded-full transition-all",
+                                            step > it.n ? "w-full bg-emerald-400/60" : active ? "w-1/2 bg-white/25" : "w-0 bg-white/0"
+                                        )}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="mt-3 h-[2px]"/>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function CardShell({
+                       title,
+                       subtitle,
+                       icon,
+                       children,
+                   }: {
+    title: string;
+    subtitle?: string;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    return (
+        <div
+            className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
+            <div className="flex items-start gap-3">
+                {icon ? (
+                    <div className="mt-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-2.5">
+                        {icon}
+                    </div>
+                ) : null}
+                <div className="space-y-1">
+                    <h2 className="text-base font-semibold text-white">{title}</h2>
+                    {subtitle ? <p className="text-xs text-white/60">{subtitle}</p> : null}
+                </div>
+            </div>
+            <div className="mt-5">{children}</div>
+        </div>
+    );
+}
+
 function OtpInline({
                        value,
                        onChange,
@@ -73,7 +176,7 @@ function OtpInline({
     const refs = React.useRef<(HTMLInputElement | null)[]>([]);
 
     return (
-        <div className="flex justify-center gap-1.5">
+        <div className="flex justify-center gap-2 max-[350px]:gap-1">
             {Array.from({length: 6}).map((_, i) => {
                 const c = value[i] ?? "";
                 return (
@@ -87,10 +190,12 @@ function OtpInline({
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={1}
-                        className="h-9 w-9 rounded-md border border-border bg-background text-center text-sm font-medium outline-none
-                       focus:ring-2 focus:ring-primary disabled:opacity-50"
+                        className={cn(
+                            "h-12 w-10 rounded-xl border border-white/10 bg-white/[0.03] text-center text-lg text-white outline-none",
+                            "focus:border-white/25 focus:bg-white/[0.05] disabled:opacity-60"
+                        )}
                         onChange={(e) => {
-                            const digit = e.target.value.replace(/\D/g, "");
+                            const digit = e.target.value.replace(/\D/g, "").slice(-1);
                             const arr = value.split("");
                             arr[i] = digit;
 
@@ -101,6 +206,8 @@ function OtpInline({
                         }}
                         onKeyDown={(e) => {
                             if (e.key === "Backspace" && !c && i > 0) refs.current[i - 1]?.focus();
+                            if (e.key === "ArrowLeft" && i > 0) refs.current[i - 1]?.focus();
+                            if (e.key === "ArrowRight" && i < 5) refs.current[i + 1]?.focus();
                         }}
                     />
                 );
@@ -108,6 +215,8 @@ function OtpInline({
         </div>
     );
 }
+
+/** === Page === */
 
 export default function Register() {
     const router = useRouter();
@@ -140,13 +249,11 @@ export default function Register() {
 
     // ========= PHONE VALIDATION (UX-safe rule) =========
     const parsedPhone = React.useMemo(() => parsePhoneNumberFromString(phoneRaw), [phoneRaw]);
-
     const phoneHasDigits = React.useMemo(() => /\d/.test(phoneRaw), [phoneRaw]);
 
-    // "user actually typed national number" (not only country code like +995)
     const hasNationalDigits = React.useMemo(() => {
         if (!parsedPhone) return false;
-        const nn = String((parsedPhone).nationalNumber ?? "");
+        const nn = String(parsedPhone.nationalNumber ?? "");
         return /\d/.test(nn);
     }, [parsedPhone]);
 
@@ -194,21 +301,15 @@ export default function Register() {
     React.useEffect(() => {
         if (recaptchaRef.current) return;
 
-        recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
-            size: "invisible",
-        });
-
-        return () => {
-            recaptchaRef.current?.clear();
-            recaptchaRef.current = null;
-        };
+        recaptchaRef.current = new RecaptchaVerifier(
+            firebaseAuth,
+            "recaptcha-container",
+            {
+                size: "invisible",
+            }
+        );
     }, []);
 
-    function maskedPhone(p: string) {
-        if (!p) return "";
-        if (p.length <= 6) return p;
-        return `${p.slice(0, 4)}******${p.slice(-3)}`;
-    }
 
     function resetAll() {
         setStep(1);
@@ -229,7 +330,6 @@ export default function Register() {
 
         confirmationRef.current = null;
 
-        // ✅ important: timer reset (no “Resend in …” after Start over)
         startCooldown(0);
     }
 
@@ -238,7 +338,6 @@ export default function Register() {
             toast({variant: "destructive", title: "Invalid phone", description: "Enter a valid phone number."});
             return;
         }
-
         if (cooldown > 0) return;
 
         const appVerifier = recaptchaRef.current;
@@ -252,13 +351,14 @@ export default function Register() {
             setOtp("");
             confirmationRef.current = null;
 
-            // ✅ server preflight: cooldown + phone exists check
             const pre = await fetch("/api/auth/send-code-preflight", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                cache: "no-store",
                 body: JSON.stringify({phoneE164}),
             });
-            const preJson = (await pre.json().catch(() => ({})));
+            const preJson = await pre.json().catch(() => ({}));
 
             if (!pre.ok) {
                 const retryAfter = typeof preJson?.retryAfter === "number" ? preJson.retryAfter : 0;
@@ -277,26 +377,30 @@ export default function Register() {
                 return;
             }
 
-            // 2) send SMS via Firebase
             const confirmation = await signInWithPhoneNumber(firebaseAuth, phoneE164, appVerifier);
             confirmationRef.current = confirmation;
 
-            // 3) commit cooldown
-            await fetch("/api/auth/send-code-commit", {
+            const commit = await fetch("/api/auth/send-code-commit", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
+                credentials: "include",
+                cache: "no-store",
                 body: JSON.stringify({phoneE164}),
-            }).catch(() => {
-            });
+            }).catch(() => null);
 
-            startCooldown(COOLDOWN_SECONDS);
+            let retryAfter = COOLDOWN_SECONDS;
+            try {
+                const c = await commit?.json?.().catch(() => ({}));
+                if (typeof (c)?.retryAfter === "number" && (c).retryAfter > 0) retryAfter = (c).retryAfter;
+            } catch {
+                // ignore
+            }
+            startCooldown(retryAfter);
 
             setStep(2);
             toast({variant: "success", title: "Code sent", description: "We sent a 6-digit code to your phone."});
         } catch (err) {
             const {code, message} = getErrInfo(err);
-
-            // don't trigger Next overlay for common auth errors
             if (!code.includes("auth/")) console.error(err);
 
             startCooldown(0);
@@ -340,12 +444,9 @@ export default function Register() {
             setFirebaseIdToken(idToken);
 
             setStep(3);
-
             toast({variant: "success", title: "Phone verified", description: "Now complete your account details."});
         } catch (err) {
             const {code, message} = getErrInfo(err);
-
-            // ✅ do NOT console.error expected firebase errors
             if (!isFirebaseExpectedCode(code)) console.error(err);
 
             if (code.includes("auth/invalid-verification-code")) {
@@ -385,7 +486,7 @@ export default function Register() {
             toast({
                 variant: "destructive",
                 title: "Phone missing",
-                description: "Go back and verify your phone again."
+                description: "Go back and verify your phone again.",
             });
             setStep(1);
             return;
@@ -398,7 +499,7 @@ export default function Register() {
                 toast({
                     variant: "destructive",
                     title: "Phone verification missing",
-                    description: "Verify phone again."
+                    description: "Verify phone again.",
                 });
                 setStep(1);
                 return;
@@ -408,18 +509,18 @@ export default function Register() {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 credentials: "include",
+                cache: "no-store",
                 body: JSON.stringify({
                     name: name.trim(),
                     email: email.trim().toLowerCase(),
-                    phone: phoneE164, // ✅ IMPORTANT (matches your backend)
+                    phone: phoneE164,
                     password,
                     firebaseIdToken,
                 }),
             });
 
-            const result: unknown = await res.json();
-            const error =
-                typeof result === "object" && result !== null && "error" in result ? (result).error : null;
+            const result = await res.json().catch(() => ({}));
+            const error = result?.error;
 
             if (!res.ok || error) {
                 toast({
@@ -443,310 +544,385 @@ export default function Register() {
     }
 
     return (
-        <div className="min-h-screen flex">
-            <div className="hidden lg:flex flex-1 items-center justify-center gradient-primary p-12">
-                <div className="max-w-md text-center text-primary-foreground">
-                    <h2 className="font-display text-3xl font-bold mb-4">Start Your Transformation Today</h2>
-                    <p className="text-primary-foreground/90">
-                        Join thousands of fitness enthusiasts achieving their goals with AI-powered personalized
-                        training.
-                    </p>
-                </div>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 xl:px-12">
-                <div className="w-full max-w-sm mx-auto">
-                    <Link
-                        href="/"
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-                    >
-                        <ArrowLeft className="h-4 w-4"/>
-                        Back to home
-                    </Link>
-
-                    <div className="flex items-center gap-2 mb-8">
-                        <Image src="/logo.svg" alt="Logo" width={170} height={40}/>
+        <div className="min-h-screen bg-[#05070b] text-white">
+            <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+                {/* LEFT hero */}
+                <div className="relative hidden lg:flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 gradient-primary"/>
+                    <div
+                        className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent_55%)]"/>
+                    <div className="relative max-w-md text-center px-10 text-primary-foreground">
+                        <h2 className="font-display text-4xl font-bold mb-4 text-black">
+                            Start Your Transformation <br/> Today
+                        </h2>
+                        <p className="text-black/80 text-sm leading-relaxed">
+                            Join thousands of fitness enthusiasts achieving their goals with AI-powered personalized
+                            training.
+                        </p>
                     </div>
+                </div>
 
-                    <h1 className="font-display text-2xl font-bold mb-2">Create your account</h1>
-                    <p className="text-muted-foreground mb-8">Start your free trial today</p>
+                {/* RIGHT panel */}
+                <div className="flex flex-col">
+                    {/* top area with logo + back */}
+                    <div className="px-5 sm:px-8 lg:px-10 pt-8">
+                        <div className="mx-auto w-full">
+                            <div className="flex items-center justify-between">
+                                <Link
+                                    href="/"
+                                    className="inline-flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors"
+                                >
+                                    <ArrowLeft className="h-4 w-4"/>
+                                    Back to home
+                                </Link>
 
-                    {/* ✅ only one recaptcha mount point */}
-                    <div id="recaptcha-container" className="hidden"/>
-
-                    <div className="rounded-lg border p-3 text-sm mb-5">
-                        <div className="flex items-center justify-between">
-                            <span className="font-medium">Verification</span>
-                            <span className="text-muted-foreground">Step {step}/3</span>
-                        </div>
-                        <div className="mt-2 text-xs text-muted-foreground">
-                            {step === 1 && "Enter your phone number and request a verification code."}
-                            {step === 2 && "Enter the 6-digit code."}
-                            {step === 3 && "Finish account details."}
+                                <Link href="/" className="hidden sm:inline-flex">
+                                    <Image src="/logo.svg" alt="OptiFit" width={140} height={32} priority/>
+                                </Link>
+                            </div>
                         </div>
                     </div>
 
-                    {step === 1 && (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Phone Number</Label>
-
-                                <div
-                                    className="rounded-md border bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-primary">
-                                    <PhoneInput
-                                        defaultCountry="ge"
-                                        value={phoneRaw}
-                                        onBlur={() => setPhoneTouched(true)}
-                                        onChange={(value) => {
-                                            setPhoneRaw(value);
-                                            setOtp("");
-                                            setFirebaseIdToken("");
-                                            confirmationRef.current = null;
-
-                                            const parsed = parsePhoneNumberFromString(value);
-                                            setPhoneE164(parsed?.isValid() ? parsed.number : "");
-                                        }}
-                                        inputClassName="!bg-transparent !text-foreground !outline-none !border-0 !shadow-none !w-full"
-                                        countrySelectorStyleProps={{
-                                            buttonClassName:
-                                                "!bg-transparent !border-0 !shadow-none !px-1 !py-0 !text-foreground hover:!bg-muted/40 rounded-md",
-                                            dropdownStyleProps: {
-                                                className:
-                                                    "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-hidden",
-                                            },
-                                        }}
-                                    />
-                                </div>
-
-                                {showPhoneOk ? (
-                                    <div className="flex items-center gap-2 text-xs text-green-600">
-                                        <CheckCircle2 className="h-4 w-4"/>
-                                        <span>Valid phone number</span>
-                                    </div>
-                                ) : showPhoneError ? (
-                                    <div className="flex items-center gap-2 text-xs text-destructive">
-                                        <AlertCircle className="h-4 w-4"/>
-                                        <span>Please enter a valid phone number</span>
-                                    </div>
-                                ) : null}
-
-                                {process.env.NODE_ENV !== "production" && (
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Dev: use test phone <span className="font-medium">+995568740497</span> and
-                                        code{" "}
-                                        <span className="font-medium">111111</span>.
-                                    </p>
-                                )}
+                    {/* center area */}
+                    <div className="px-5 sm:px-8 lg:px-10 pb-10 flex items-start justify-center my-auto">
+                        <div className="w-full max-w-md pt-6 space-y-5">
+                            {/* On mobile keep logo visible too */}
+                            <div className="mt-6 flex items-center justify-center sm:hidden">
+                                <Image src="/logo.svg" alt="OptiFit" width={170} height={40} priority/>
                             </div>
 
-                            <Button
-                                type="button"
-                                className="w-full"
-                                size="lg"
-                                onClick={sendCode}
-                                disabled={!phoneValid || loadingSend || cooldown > 0}
-                            >
-                                {loadingSend ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send code"}
-                            </Button>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="rounded-lg border p-3">
-                                <div className="text-xs text-muted-foreground">
-                                    Code sent to <span
-                                    className="font-medium">{maskedPhone(phoneE164 || phoneRaw)}</span>
-                                </div>
-
-                                <div className="mt-3">
-                                    <OtpInline value={otp} onChange={setOtp} disabled={loadingVerify}/>
-                                </div>
-
-                                <div className="mt-2 text-[11px] text-muted-foreground text-center">
-                                    {cooldown > 0 ? `You can resend in ${cooldown}s` : "Didn’t get it? Go back and resend."}
-                                </div>
+                            {/* Title */}
+                            <div className="text-center space-y-1">
+                                <h1 className="font-display text-2xl font-bold">Create your account</h1>
+                                <p className="text-white/60 text-sm">Complete verification in 3 quick steps</p>
                             </div>
 
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => {
-                                        setStep(1);
-                                        setOtp("");
-                                    }}
-                                    disabled={loadingVerify}
+                            {/* Stepper (makes it CLEAR it's a flow) */}
+                            <Stepper step={step}/>
+
+                            {/* only one recaptcha mount point */}
+                            <div id="recaptcha-container" className="hidden"/>
+
+                            {/* Step 1 */}
+                            {step === 1 && (
+                                <CardShell
+                                    title="Phone verification"
+                                    subtitle="We’ll send a one-time code to your phone."
+                                    icon={<Smartphone className="h-5 w-5 text-white/80"/>}
                                 >
-                                    Change phone
-                                </Button>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-white/80">Phone Number</Label>
 
-                                <Button
-                                    type="button"
-                                    className="w-full"
-                                    onClick={verifyCode}
-                                    disabled={otp.length !== 6 || loadingVerify}
+                                            <div
+                                                className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 focus-within:border-white/25">
+                                                <PhoneInput
+                                                    defaultCountry="ge"
+                                                    value={phoneRaw}
+                                                    onBlur={() => setPhoneTouched(true)}
+                                                    onChange={(value) => {
+                                                        setPhoneRaw(value);
+                                                        setOtp("");
+                                                        setFirebaseIdToken("");
+                                                        confirmationRef.current = null;
+
+                                                        const parsed = parsePhoneNumberFromString(value);
+                                                        setPhoneE164(parsed?.isValid() ? parsed.number : "");
+                                                    }}
+                                                    inputClassName="!bg-transparent !text-white !outline-none !border-0 !shadow-none !w-full"
+                                                    countrySelectorStyleProps={{
+                                                        buttonClassName:
+                                                            "!bg-transparent !border-0 !shadow-none !px-1 !py-0 !text-white hover:!bg-white/5 rounded-md",
+                                                        dropdownStyleProps: {
+                                                            className:
+                                                                "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-hidden",
+                                                        },
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <div className="min-h-[18px] text-xs">
+                                                {showPhoneOk ? (
+                                                    <div className="flex items-center gap-2 text-emerald-400">
+                                                        <CheckCircle2 className="h-4 w-4"/>
+                                                        <span>Valid phone number</span>
+                                                    </div>
+                                                ) : showPhoneError ? (
+                                                    <div className="flex items-center gap-2 text-red-400">
+                                                        <AlertCircle className="h-4 w-4"/>
+                                                        <span>Please enter a valid phone number</span>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+
+                                            {process.env.NODE_ENV !== "production" && (
+                                                <p className="text-[11px] text-white/40">
+                                                    Dev: use test phone <span
+                                                    className="font-medium text-white/70">+995568740497</span> and
+                                                    code{" "}
+                                                    <span className="font-medium text-white/70">111111</span>.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            className="w-full h-11 flex"
+                                            size="lg"
+                                            onClick={sendCode}
+                                            disabled={!phoneValid || loadingSend || cooldown > 0}
+                                        >
+                                            {loadingSend ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send code"}
+                                            <ChevronRight className="h-4 w-4"/>
+                                        </Button>
+
+                                        <div className="text-center text-xs text-white/60">
+                                            Already have an account?{" "}
+                                            <Link href="/signin" className="text-[#10d3d3] hover:underline">
+                                                Sign in
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </CardShell>
+                            )}
+
+                            {/* Step 2 */}
+                            {step === 2 && (
+                                <CardShell
+                                    title="Confirm OTP"
+                                    subtitle="Enter the 6-digit code we sent you."
+                                    icon={<KeyRound className="h-5 w-5 text-white/80"/>}
                                 >
-                                    {loadingVerify ? "Verifying..." : "Confirm"}
-                                </Button>
+                                    <div className="space-y-5">
+                                        <div
+                                            className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2 text-white/70">
+                                                    <ShieldCheck className="h-4 w-4 text-emerald-400"/>
+                                                    <span>Code sent to</span>
+                                                </div>
+                                                <span
+                                                    className="text-xs text-white/85 font-medium">{maskedPhone(phoneE164 || phoneRaw)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <Label className="text-white/80">Code</Label>
+                                            <OtpInline value={otp} onChange={setOtp} disabled={loadingVerify}/>
+
+                                            <div className="flex items-center justify-between text-xs text-white/60">
+                                                <span>{cooldown > 0 ? `You can resend in ${cooldown}s` : "You can resend now"}</span>
+                                                <button
+                                                    type="button"
+                                                    className={cn("text-[#10d3d3] hover:underline", cooldown > 0 && "opacity-40 pointer-events-none")}
+                                                    onClick={sendCode}
+                                                >
+                                                    Resend
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="flex-1 h-11 border-white/15 bg-white/[0.02] hover:bg-white/[0.04]"
+                                                onClick={() => {
+                                                    setStep(1);
+                                                    setOtp("");
+                                                }}
+                                                disabled={loadingVerify}
+                                            >
+                                                Change phone
+                                            </Button>
+
+                                            <Button
+                                                type="button"
+                                                className="flex-1 h-11"
+                                                onClick={verifyCode}
+                                                disabled={otp.length !== 6 || loadingVerify}
+                                            >
+                                                {loadingVerify ? "Verifying..." : "Confirm"}
+                                            </Button>
+                                        </div>
+
+                                        <div className="text-center text-xs text-white/60">
+                                            Already have an account?{" "}
+                                            <Link href="/signin" className="text-[#10d3d3] hover:underline">
+                                                Sign in
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </CardShell>
+                            )}
+
+                            {/* Step 3 */}
+                            {step === 3 && (
+                                <form onSubmit={createAccount}>
+                                    <CardShell
+                                        title="Account details"
+                                        subtitle="Create your login credentials to finish."
+                                        icon={<CheckCircle2 className="h-5 w-5 text-emerald-400"/>}
+                                    >
+                                        <div className="space-y-5">
+                                            <div
+                                                className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2 text-emerald-200">
+                                                        <CheckCircle2 className="h-4 w-4"/>
+                                                        <span className="font-medium">Phone verified</span>
+                                                    </div>
+                                                    <span
+                                                        className="text-xs text-white/80 font-medium">{maskedPhone(phoneE164)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="name" className="text-white/80">
+                                                        Full Name
+                                                    </Label>
+                                                    <div className="relative">
+                                                        <User
+                                                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
+                                                        <Input
+                                                            id="name"
+                                                            value={name}
+                                                            onChange={(e) => setName(e.target.value)}
+                                                            className="h-11 pl-10 bg-white/[0.03] border-white/10 focus:border-white/25"
+                                                            placeholder="John Doe"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="email" className="text-white/80">
+                                                        Email
+                                                    </Label>
+                                                    <div className="relative">
+                                                        <Mail
+                                                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
+                                                        <Input
+                                                            id="email"
+                                                            type="email"
+                                                            value={email}
+                                                            onChange={(e) => setEmail(e.target.value)}
+                                                            className="h-11 pl-10 bg-white/[0.03] border-white/10 focus:border-white/25"
+                                                            placeholder="you@example.com"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="password" className="text-white/80">
+                                                        Password
+                                                    </Label>
+                                                    <div className="relative">
+                                                        <Lock
+                                                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
+                                                        <Input
+                                                            id="password"
+                                                            type={showPass1 ? "text" : "password"}
+                                                            value={password}
+                                                            onChange={(e) => setPassword(e.target.value)}
+                                                            className="h-11 pl-10 pr-11 bg-white/[0.03] border-white/10 focus:border-white/25"
+                                                            placeholder="••••••••"
+                                                            required
+                                                            minLength={8}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPass1((s) => !s)}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-white/50 hover:text-white"
+                                                        >
+                                                            {showPass1 ? <EyeOff className="h-4 w-4"/> :
+                                                                <Eye className="h-4 w-4"/>}
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-white/45">Must be at least 8
+                                                        characters</p>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="password2" className="text-white/80">
+                                                        Confirm Password
+                                                    </Label>
+                                                    <div className="relative">
+                                                        <Lock
+                                                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
+                                                        <Input
+                                                            id="password2"
+                                                            type={showPass2 ? "text" : "password"}
+                                                            value={password2}
+                                                            onChange={(e) => setPassword2(e.target.value)}
+                                                            className="h-11 pl-10 pr-11 bg-white/[0.03] border-white/10 focus:border-white/25"
+                                                            placeholder="••••••••"
+                                                            required
+                                                            minLength={8}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPass2((s) => !s)}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-white/50 hover:text-white"
+                                                        >
+                                                            {showPass2 ? <EyeOff className="h-4 w-4"/> :
+                                                                <Eye className="h-4 w-4"/>}
+                                                        </button>
+                                                    </div>
+
+                                                    {password2 && password !== password2 ? (
+                                                        <p className="text-xs text-red-400">Passwords do not match</p>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 pt-1">
+                                                <Button className="w-full h-11" type="submit"
+                                                        disabled={!detailsValid || loadingCreate}>
+                                                    {loadingCreate ? "Creating..." : "Create Account"}
+                                                </Button>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="w-full h-11 border-white/15 bg-white/[0.02] hover:bg-white/[0.04]"
+                                                    onClick={resetAll}
+                                                    disabled={loadingCreate}
+                                                >
+                                                    <RotateCcw className="mr-2 h-4 w-4"/>
+                                                    Start over
+                                                </Button>
+                                            </div>
+
+                                            <div className="text-center text-xs text-white/60">
+                                                Already have an account?{" "}
+                                                <Link href="/signin" className="text-[#10d3d3] hover:underline">
+                                                    Sign in
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </CardShell>
+                                </form>
+                            )}
+
+                            {/* Footer */}
+                            <div className="pt-2 text-center text-[11px] text-white/45">
+                                By creating an account, you agree to our{" "}
+                                <Link href="/terms" className="text-white/65 underline underline-offset-4">
+                                    Terms of Service
+                                </Link>{" "}
+                                and{" "}
+                                <Link href="/privacy" className="text-white/65 underline underline-offset-4">
+                                    Privacy Policy
+                                </Link>
+                                .
                             </div>
                         </div>
-                    )}
-
-                    {step === 3 && (
-                        <form onSubmit={createAccount} className="space-y-4">
-                            <div className="rounded-lg border p-3 text-xs text-muted-foreground">
-                                Phone verified: <span
-                                className="font-medium text-foreground">{maskedPhone(phoneE164)}</span>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <div className="relative">
-                                    <User
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        placeholder="John Doe"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="pl-10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <div className="relative">
-                                    <Mail
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="pl-10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
-                                <div className="relative">
-                                    <Lock
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input
-                                        id="password"
-                                        type={showPass1 ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-10 pr-10"
-                                        required
-                                        minLength={8}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPass1((s) => !s)}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
-                                        aria-label={showPass1 ? "Hide password" : "Show password"}
-                                    >
-                                        {showPass1 ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
-                                    </button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="password2">Confirm Password</Label>
-                                <div className="relative">
-                                    <Lock
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input
-                                        id="password2"
-                                        type={showPass2 ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        value={password2}
-                                        onChange={(e) => setPassword2(e.target.value)}
-                                        className="pl-10 pr-10"
-                                        required
-                                        minLength={8}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPass2((s) => !s)}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
-                                        aria-label={showPass2 ? "Hide password" : "Show password"}
-                                    >
-                                        {showPass2 ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
-                                    </button>
-                                </div>
-
-                                {password2 && password !== password2 && (
-                                    <p className="text-xs text-destructive">Passwords do not match</p>
-                                )}
-                            </div>
-
-                            <Button type="submit" className="w-full" size="lg"
-                                    disabled={!detailsValid || loadingCreate}>
-                                {loadingCreate ? "Creating account..." : "Create Account"}
-                            </Button>
-
-                            <Button type="button" variant="outline" className="w-full" onClick={resetAll}
-                                    disabled={loadingCreate}>
-                                Start over
-                            </Button>
-                        </form>
-                    )}
-
-                    <p className="mt-8 text-center text-sm text-muted-foreground">
-                        Already have an account?{" "}
-                        <Link href="/signin" className="text-primary font-medium hover:underline">
-                            Sign in
-                        </Link>
-                    </p>
-
-                    <p className="mt-4 text-center text-xs text-muted-foreground">
-                        By creating an account, you agree to our{" "}
-                        <Link href="/terms" className="underline hover:text-foreground">
-                            Terms of Service
-                        </Link>{" "}
-                        and{" "}
-                        <Link href="/privacy" className="underline hover:text-foreground">
-                            Privacy Policy
-                        </Link>
-                    </p>
+                    </div>
                 </div>
             </div>
-
-            <style jsx global>{`
-                .react-international-phone-country-selector-dropdown {
-                    border-radius: 12px !important;
-                    overflow: hidden !important;
-                }
-
-                .react-international-phone-country-selector-dropdown__list {
-                    max-height: 260px !important;
-                    overflow-y: auto !important;
-                    overflow-x: hidden !important;
-                    overscroll-behavior: contain;
-                    -webkit-overflow-scrolling: touch;
-                }
-
-                .react-international-phone-input {
-                    background: transparent !important;
-                    border: 0 !important;
-                    box-shadow: none !important;
-                    outline: none !important;
-                    width: 100% !important;
-                    color: inherit !important;
-                }
-            `}</style>
         </div>
     );
 }

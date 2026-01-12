@@ -1,8 +1,7 @@
 "use client";
 
 import {Menu, X} from "lucide-react";
-import {useMemo, useState} from "react";
-import {usePathname} from "next/navigation";
+import {useState} from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -10,33 +9,12 @@ import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
 import {useAuth} from "@/components/providers/AuthProvider";
 
-const PROTECTED_PAGES = [
-    "/dashboard",
-    "/training",
-    "/diet",
-    "/notebook",
-    "/history",
-    "/analytics",
-    "/profile",
-    "/settings",
-];
-
 export function Navbar() {
-    const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
     const {loading} = useAuth();
-
-    const isProtectedPage = useMemo(
-        () => PROTECTED_PAGES.some((p) => pathname.startsWith(p)),
-        [pathname]
-    );
-
-    if (isProtectedPage) return null;
 
     return (
         <>
-            {/* Click-outside overlay (below navbar, above page content) */}
             {mobileMenuOpen && (
                 <div
                     className="fixed inset-0 z-40 md:hidden"
@@ -52,10 +30,13 @@ export function Navbar() {
                             href="/"
                             className="flex items-center gap-2"
                             onClick={(e) => {
-                                if (pathname === "/") {
+                                // If already on the landing page, smooth-scroll to top
+                                if (window.location.pathname === "/") {
                                     e.preventDefault();
                                     setMobileMenuOpen(false);
                                     window.scrollTo({top: 0, behavior: "smooth"});
+                                } else {
+                                    setMobileMenuOpen(false);
                                 }
                             }}
                         >
@@ -84,7 +65,11 @@ export function Navbar() {
                             onClick={() => setMobileMenuOpen((v) => !v)}
                             aria-label="Toggle menu"
                         >
-                            {mobileMenuOpen ? <X className="h-6 w-6"/> : <Menu className="h-6 w-6"/>}
+                            {mobileMenuOpen ? (
+                                <X className="h-6 w-6"/>
+                            ) : (
+                                <Menu className="h-6 w-6"/>
+                            )}
                         </button>
                     </div>
 

@@ -227,3 +227,25 @@
 section {
     scroll-margin-top: 78px;
 }
+
+.react-international-phone-country-selector-dropdown {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+.react-international-phone-country-selector-dropdown__list {
+    max-height: 260px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.react-international-phone-input {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    width: 100% !important;
+    color: inherit !important;
+}
