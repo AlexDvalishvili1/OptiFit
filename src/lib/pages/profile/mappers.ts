@@ -6,7 +6,6 @@ export function userToFormData(user: NonNullable<MeUser>, prev: ProfileFormData)
     return {
         ...prev,
         name: user.name ?? "",
-        email: user.email ?? "",
         gender: user.gender ?? undefined,
         dateOfBirth: user.dob ? String(user.dob).slice(0, 10) : "",
         height: typeof user.height === "number" ? user.height : prev.height,
@@ -20,7 +19,6 @@ export function userToFormData(user: NonNullable<MeUser>, prev: ProfileFormData)
 export function formDataToPatchPayload(formData: ProfileFormData) {
     return {
         name: formData.name.trim(),
-        email: formData.email.trim().toLowerCase(),
         gender: formData.gender,
         dob: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         height: Number(formData.height),

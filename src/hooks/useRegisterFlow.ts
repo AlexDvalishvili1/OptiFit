@@ -33,7 +33,6 @@ export function useRegisterFlow() {
     const [otp, setOtp] = React.useState("");
 
     const [name, setName] = React.useState("");
-    const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [password2, setPassword2] = React.useState("");
     const [showPass1, setShowPass1] = React.useState(false);
@@ -84,7 +83,6 @@ export function useRegisterFlow() {
 
         setOtp("");
         setName("");
-        setEmail("");
         setPassword("");
         setPassword2("");
         setShowPass1(false);
@@ -224,7 +222,6 @@ export function useRegisterFlow() {
 
     const detailsValid =
         name.trim().length > 1 &&
-        email.trim().length > 3 &&
         password.length >= 8 &&
         password === password2;
 
@@ -261,7 +258,6 @@ export function useRegisterFlow() {
 
             const res = await registerAccount({
                 name: name.trim(),
-                email: email.trim().toLowerCase(),
                 phone: phoneE164,
                 password,
                 firebaseIdToken,
@@ -288,7 +284,7 @@ export function useRegisterFlow() {
         } finally {
             setLoadingCreate(false);
         }
-    }, [email, firebaseIdToken, name, password, password2, phoneE164, refresh, router, toast]);
+    }, [firebaseIdToken, name, password, password2, phoneE164, refresh, router, toast]);
 
     const goToStep1 = React.useCallback(() => {
         setStep(1);
@@ -302,7 +298,6 @@ export function useRegisterFlow() {
         phoneE164,
         otp,
         name,
-        email,
         password,
         password2,
         showPass1,
@@ -323,7 +318,6 @@ export function useRegisterFlow() {
         // actions
         setOtp,
         setName,
-        setEmail,
         setPassword,
         setPassword2,
         setShowPass1,

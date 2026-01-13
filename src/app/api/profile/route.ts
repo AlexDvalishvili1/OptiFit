@@ -9,7 +9,6 @@ type TokenPayload = { sub: string; [key: string]: unknown };
 
 type ProfilePatchBody = {
     name?: unknown;
-    email?: unknown;
     gender?: unknown;
     dob?: unknown;
     height?: unknown;
@@ -21,7 +20,6 @@ type ProfilePatchBody = {
 
 type UserUpdate = {
     name?: string;
-    email?: string;
     gender?: "male" | "female";
     dob?: Date | undefined;
     height?: number | undefined;
@@ -53,7 +51,6 @@ export async function PATCH(req: NextRequest) {
         const update: UserUpdate = {};
 
         if (typeof data.name === "string") update.name = data.name.trim();
-        if (typeof data.email === "string") update.email = data.email.trim().toLowerCase();
 
         if (data.gender === "male" || data.gender === "female") update.gender = data.gender;
 
@@ -79,10 +76,8 @@ export async function PATCH(req: NextRequest) {
         Object.assign(user, update);
         await user.save();
 
-        // user._id and user.email are now properly typed
         const newToken = await signToken({
             sub: user._id.toString(),
-            email: user.email,
             onboarded: !!user.advanced,
         });
 
@@ -92,7 +87,6 @@ export async function PATCH(req: NextRequest) {
                 user: {
                     id: user._id.toString(),
                     name: user.name ?? null,
-                    email: user.email,
                     phone: user.phone,
                     gender: (user.gender as "male" | "female" | undefined) ?? null, // schema currently has gender: String
                     dob: user.dob instanceof Date ? user.dob.toISOString() : null,

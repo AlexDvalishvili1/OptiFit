@@ -105,8 +105,6 @@ export default function Register() {
                                 <StepDetails
                                     name={flow.name}
                                     setName={flow.setName}
-                                    email={flow.email}
-                                    setEmail={flow.setEmail}
                                     password={flow.password}
                                     setPassword={flow.setPassword}
                                     password2={flow.password2}

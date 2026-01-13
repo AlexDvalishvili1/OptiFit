@@ -6,13 +6,12 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {User as UserIcon} from "lucide-react";
 import type {ProfileFormData} from "@/lib/pages/profile/types";
 
-type PersonalFields = Pick<ProfileFormData, "name" | "email" | "gender" | "dateOfBirth" | "height" | "weight">;
+type PersonalFields = Pick<ProfileFormData, "name" | "gender" | "dateOfBirth" | "height" | "weight">;
 
 type PersonalOnChange = (
-    field: "name" | "email" | "gender" | "dateOfBirth" | "height" | "weight",
+    field: "name" | "gender" | "dateOfBirth" | "height" | "weight",
     value:
         | ProfileFormData["name"]
-        | ProfileFormData["email"]
         | ProfileFormData["gender"]
         | ProfileFormData["dateOfBirth"]
         | ProfileFormData["height"]
@@ -44,14 +43,14 @@ export function PersonalInfoSection({formData, onChange}: Props) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => onChange("email", e.target.value)}
-                        placeholder="john@example.com"
-                    />
+                    <Label htmlFor="email">Phone Number</Label>
+                    {/*<Input*/}
+                    {/*    id="email"*/}
+                    {/*    type="email"*/}
+                    {/*    value={formData.email}*/}
+                    {/*    onChange={(e) => onChange("email", e.target.value)}*/}
+                    {/*    placeholder="john@example.com"*/}
+                    {/*/>*/}
                 </div>
 
                 <div className="space-y-2">

@@ -25,7 +25,6 @@ export async function GET() {
         await connectDB();
 
         // Fix TS2349: mongoose model typings in this project make `findById` appear "not callable".
-        // We keep the exact same query/logic, only cast the model for this call site.
         const UserModel = User as unknown as {
             findById: (id: string) => {
                 select: (fields: string) => {
@@ -35,7 +34,7 @@ export async function GET() {
         };
 
         const user = await UserModel.findById(userId)
-            .select("_id name email phone advanced gender dob height weight activity goal allergies")
+            .select("_id name phone advanced gender dob height weight activity goal allergies")
             .lean();
 
         if (!user) {
@@ -45,7 +44,6 @@ export async function GET() {
         const u = user as {
             _id: { toString: () => string };
             name?: string;
-            email: string;
             phone: string;
             advanced?: unknown;
             gender?: "male" | "female" | null;
@@ -60,7 +58,6 @@ export async function GET() {
         const authUser: AuthUser = {
             id: u._id.toString(),
             name: u.name ?? undefined,
-            email: u.email,
             phone: u.phone,
 
             advanced: !!u.advanced,
@@ -76,7 +73,6 @@ export async function GET() {
 
         return NextResponse.json<{ user: AuthUser }>({user: authUser}, {status: 200});
     } catch {
-        // invalid/expired token
         return NextResponse.json<{ user: AuthUser }>({user: null}, {status: 200});
     }
 }

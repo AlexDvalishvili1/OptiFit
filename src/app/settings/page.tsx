@@ -8,13 +8,10 @@ import {useRouter} from "next/navigation";
 import {useTheme} from "@/components/providers/ThemeProvider";
 import {SettingsHeader} from "@/components/pages/settings/SettingsHeader";
 import {AppearanceCard} from "@/components/pages/settings/AppearanceCard";
-import {NotificationsCard} from "@/components/pages/settings/NotificationsCard";
 import {PrivacyDangerCards} from "@/components/pages/settings/PrivacyDangerCards";
 
 export default function Page() {
     const {isDark, setTheme, mounted} = useTheme();
-    const [notifications, setNotifications] = useState(true);
-    const [emailUpdates, setEmailUpdates] = useState(true);
 
     const {logout} = useAppStore();
     const router = useRouter();
@@ -48,13 +45,6 @@ export default function Page() {
                     mounted={mounted}
                     isDark={isDark}
                     onToggle={(enabled) => setTheme(enabled ? "dark" : "light")}
-                />
-
-                <NotificationsCard
-                    notifications={notifications}
-                    setNotifications={setNotifications}
-                    emailUpdates={emailUpdates}
-                    setEmailUpdates={setEmailUpdates}
                 />
 
                 <PrivacyDangerCards onExportData={handleExportData} onDeleteAccount={handleDeleteAccount}/>

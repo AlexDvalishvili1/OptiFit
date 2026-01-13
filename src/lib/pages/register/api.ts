@@ -38,7 +38,6 @@ export async function sendCodeCommit(phoneE164: string) {
 
 export async function registerAccount(payload: {
     name: string;
-    email: string;
     phone: string;
     password: string;
     firebaseIdToken: string;

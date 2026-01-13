@@ -4,14 +4,6 @@ import bcrypt from "bcryptjs";
 const userSchema = new Schema({
     name: {type: String},
 
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true,
-    },
-
     phone: {
         type: String,
         required: true,
@@ -27,7 +19,6 @@ const userSchema = new Schema({
     activity: {type: String},
     goal: {type: String},
     image: {type: String},
-    emailVerified: {type: Boolean},
     advanced: {type: Boolean},
 
     allergies: [{type: Object}],

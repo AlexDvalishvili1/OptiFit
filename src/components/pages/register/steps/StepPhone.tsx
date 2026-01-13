@@ -56,7 +56,7 @@ export function StepPhone({
                                     "!bg-transparent !border-0 !shadow-none !px-1 !py-0 !text-white hover:!bg-white/5 rounded-md",
                                 dropdownStyleProps: {
                                     className:
-                                        "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-hidden",
+                                        "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-y-auto overflow-hidden",
                                 },
                             }}
                         />

@@ -7,7 +7,7 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 
-import {Eye, EyeOff, Mail, Lock, User, CheckCircle2, RotateCcw} from "lucide-react";
+import {Eye, EyeOff, Lock, User, CheckCircle2, RotateCcw} from "lucide-react";
 import {maskedPhone} from "@/lib/pages/register/utils";
 
 import {RegisterCardShell} from "../RegisterCardShell";
@@ -15,8 +15,6 @@ import {RegisterCardShell} from "../RegisterCardShell";
 export function StepDetails({
                                 name,
                                 setName,
-                                email,
-                                setEmail,
                                 password,
                                 setPassword,
                                 password2,
@@ -33,8 +31,6 @@ export function StepDetails({
                             }: {
     name: string;
     setName: (v: string) => void;
-    email: string;
-    setEmail: (v: string) => void;
     password: string;
     setPassword: (v: string) => void;
     password2: string;
@@ -80,24 +76,6 @@ export function StepDetails({
                                     onChange={(e) => setName(e.target.value)}
                                     className="h-11 pl-10 bg-white/[0.03] border-white/10 focus:border-white/25"
                                     placeholder="John Doe"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-white/80">
-                                Email
-                            </Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="h-11 pl-10 bg-white/[0.03] border-white/10 focus:border-white/25"
-                                    placeholder="you@example.com"
                                     required
                                 />
                             </div>

@@ -4,7 +4,7 @@ const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
 export type JwtPayload = {
     sub: string;
-    email: string;
+    phone: string;
     onboarded?: boolean; // <= новое
 };
 

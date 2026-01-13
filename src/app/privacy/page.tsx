@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
                                 We collect information you provide directly to us, including:
                             </p>
                             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                                <li>Account information (name, email, phone number, password)</li>
+                                <li>Account information (name, phone number, password)</li>
                                 <li>Profile data (age, gender, height, weight, fitness goals)</li>
                                 <li>Health and fitness information (workout history, dietary preferences, allergies)
                                 </li>

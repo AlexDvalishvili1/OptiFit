@@ -8,7 +8,6 @@ import {firebaseAdminAuth} from "@/server/firebase/admin";
 
 type RegisterBody = {
     name?: unknown;
-    email?: unknown;
     phone?: unknown; // E.164
     password?: unknown;
     firebaseIdToken?: unknown; // REQUIRED
@@ -36,16 +35,14 @@ export async function POST(req: NextRequest) {
         const data: RegisterBody = isRecord(raw) ? (raw as RegisterBody) : {};
 
         const name = toStringOrEmpty(data?.name).trim();
-        const email = toStringOrEmpty(data?.email).trim().toLowerCase();
 
         const phoneRaw = toStringOrEmpty(data?.phone).trim();
         const firebaseIdToken = toStringOrEmpty(data?.firebaseIdToken).trim();
-
         const password = toStringOrEmpty(data?.password);
 
-        if (!email || !phoneRaw || !password || !firebaseIdToken) {
+        if (!phoneRaw || !password || !firebaseIdToken) {
             return NextResponse.json(
-                {error: "Email, phone, password and phone verification token are required."},
+                {error: "Phone, password and phone verification token are required."},
                 {status: 400}
             );
         }
@@ -70,25 +67,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Fix for strict/incorrect mongoose typings in this project: allow `$or` query shape.
-        type FindOneArg = Parameters<typeof User.findOne>[0];
-        const existsQuery = ({$or: [{email}, {phone}]} as unknown) as FindOneArg;
-
-        const exists = await User.findOne(existsQuery).select("_id email phone").lean();
-
+        // check existing by phone only
+        const exists = await User.findOne({phone}).select("_id phone").lean();
         if (exists) {
-            const conflict = exists.email === email ? "email" : "phone";
-            return NextResponse.json(
-                {error: `Account with this ${conflict} already exists.`},
-                {status: 409}
-            );
+            return NextResponse.json({error: "Account with this phone already exists."}, {status: 409});
         }
 
-        const created = await User.create({name, email, phone, password});
+        const created = await User.create({name, phone, password});
 
         const token = await signToken({
             sub: created._id.toString(),
-            email: created.email,
+            phone: created.phone,
             onboarded: !!created.advanced,
         });
 
@@ -97,7 +86,6 @@ export async function POST(req: NextRequest) {
                 result: {
                     id: created._id.toString(),
                     name: created.name,
-                    email: created.email,
                     phone: created.phone,
                 },
             },
@@ -127,7 +115,10 @@ export async function POST(req: NextRequest) {
         if (typeof err === "object" && err && "code" in err) {
             const code = (err).code;
             if (typeof code === "string" && code.startsWith("auth/")) {
-                return NextResponse.json({error: "Phone verification expired. Please verify again."}, {status: 401});
+                return NextResponse.json(
+                    {error: "Phone verification expired. Please verify again."},
+                    {status: 401}
+                );
             }
         }
 

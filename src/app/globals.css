@@ -230,7 +230,8 @@ section {
 
 .react-international-phone-country-selector-dropdown {
     border-radius: 12px !important;
-    overflow: hidden !important;
+    overflow: hidden;
+    overflow-y: auto !important;
 }
 
 .react-international-phone-country-selector-dropdown__list {
@@ -239,6 +240,10 @@ section {
     overflow-x: hidden !important;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+}
+
+.react-international-phone-country-selector-dropdown__list-item:hover {
+    
 }
 
 .react-international-phone-input {

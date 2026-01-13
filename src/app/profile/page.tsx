@@ -55,7 +55,6 @@ const ACTIVITY_LEVELS = [
 
 const DEFAULT_FORM: ProfileFormData = {
     name: "",
-    email: "",
     gender: undefined,
     dateOfBirth: "",
     height: 0,
@@ -172,14 +171,13 @@ export default function Profile() {
 
     // For AvatarCard, use current formData (editable) + loadingMe from provider
     const avatarName = useMemo(() => formData.name, [formData.name]);
-    const avatarEmail = useMemo(() => formData.email, [formData.email]);
 
     return (
         <DashboardLayout>
             <div className="max-w-2xl mx-auto space-y-8">
                 <ProfileHeader/>
 
-                <AvatarCard loadingMe={loadingMe} name={avatarName} email={avatarEmail}/>
+                <AvatarCard loadingMe={loadingMe} name={avatarName}/>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <PersonalInfoSection formData={formData} onChange={handleChange}/>
