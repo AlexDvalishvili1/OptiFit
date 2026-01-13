@@ -22,6 +22,17 @@ export function AdvancedCover({children}: { children: React.ReactNode }) {
         if (!user) router.replace("/");
     }, [isGuarded, loading, user, router]);
 
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/auth/logout", {method: "POST", credentials: "include"});
+        } catch {
+            // ignore
+        } finally {
+            router.replace("/");
+            router.refresh();
+        }
+    };
+
     // не guarded -> всё ок
     if (!isGuarded) return <>{children}</>;
 
@@ -51,8 +62,17 @@ export function AdvancedCover({children}: { children: React.ReactNode }) {
                         <Button className="flex-1" onClick={() => router.push("/profile")}>
                             Go to Profile
                         </Button>
-                        <Button variant="outline" className="flex-1" onClick={() => router.push("/")}>
-                            Not now
+                        <Button
+                            variant="outline"
+                            className="
+                            flex-1
+                            border-destructive/40
+                            text-destructive
+                            hover:bg-destructive/10
+                            hover:text-destructive
+                        "
+                            onClick={handleLogout}>
+                            Logout
                         </Button>
                     </div>
                 </div>
