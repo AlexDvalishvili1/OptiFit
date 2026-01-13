@@ -6,7 +6,7 @@ import {useRouter} from "next/navigation";
 import {useToast} from "@/hooks/use-toast";
 import {useAuth} from "@/components/providers/AuthProvider";
 
-import {derivePhoneValidation} from "@/lib/pages/signin/phoneValidation";
+import {derivePhoneValidation} from "@/lib/pages/auth/phoneValidation";
 import {signInWithPhone} from "@/lib/pages/signin/api";
 
 import {normalizePhoneE164} from "@/lib/pages/register/phone/normalize";
