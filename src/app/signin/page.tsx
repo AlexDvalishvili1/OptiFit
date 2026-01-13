@@ -6,10 +6,8 @@ import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
-import {Lock} from "lucide-react";
-
+import {Lock, Eye, EyeOff} from "lucide-react";
 import {useSignInFlow} from "@/hooks/useSignInFlow";
-
 import {AuthHero} from "@/components/pages/signin/AuthHero";
 import {AuthPanelShell} from "@/components/pages/signin/AuthPanelShell";
 import {AuthCard} from "@/components/pages/signin/AuthCard";
@@ -44,14 +42,28 @@ export default function SignInPage() {
 
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40"/>
+
                                     <Input
-                                        type="password"
+                                        type={flow.showPassword ? "text" : "password"}
                                         value={flow.password}
                                         onChange={(e) => flow.setPassword(e.target.value)}
-                                        className="h-11 pl-10 bg-white/[0.03] border-white/10 focus:border-white/25"
+                                        className="h-11 pl-10 pr-11 bg-white/[0.03] border-white/10 focus:border-white/25"
                                         placeholder="••••••••"
                                         required
                                     />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => flow.setShowPassword((v) => !v)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-white/50 hover:text-white focus:outline-none"
+                                        aria-label={flow.showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {flow.showPassword ? (
+                                            <EyeOff className="h-4 w-4"/>
+                                        ) : (
+                                            <Eye className="h-4 w-4"/>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
 

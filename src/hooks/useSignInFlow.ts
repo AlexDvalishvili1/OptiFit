@@ -18,6 +18,7 @@ export function useSignInFlow() {
 
     const [phoneRaw, setPhoneRaw] = React.useState("");
     const [password, setPassword] = React.useState("");
+    const [showPassword, setShowPassword] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [phoneTouched, setPhoneTouched] = React.useState(false);
 
@@ -86,6 +87,7 @@ export function useSignInFlow() {
         // state
         phoneRaw,
         password,
+        showPassword,
         loading,
 
         // ux flags
@@ -95,6 +97,7 @@ export function useSignInFlow() {
 
         // actions
         setPassword,
+        setShowPassword,
         onPhoneChange,
         onPhoneBlur,
         submit,
