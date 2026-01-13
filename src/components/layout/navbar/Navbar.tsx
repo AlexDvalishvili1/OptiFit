@@ -7,11 +7,9 @@ import Image from "next/image";
 
 import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
-import {useAuth} from "@/components/providers/AuthProvider";
 
 export function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const {loading} = useAuth();
 
     return (
         <>
@@ -20,7 +18,7 @@ export function Navbar() {
                     className="fixed inset-0 z-40 md:hidden"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-hidden="true"
-                />
+                ></div>
             )}
 
             <nav className="fixed top-0 left-0 right-0 z-50 glass-card">
@@ -58,7 +56,7 @@ export function Navbar() {
                             </div>
                         </Link>
 
-                        <NavbarDesktop loading={loading}/>
+                        <NavbarDesktop/>
 
                         <button
                             className="md:hidden p-2"
@@ -75,7 +73,6 @@ export function Navbar() {
 
                     <NavbarMobile
                         open={mobileMenuOpen}
-                        loading={loading}
                         onClose={() => setMobileMenuOpen(false)}
                     />
                 </div>
