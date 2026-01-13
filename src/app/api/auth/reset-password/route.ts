@@ -1,11 +1,11 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 import type {NextRequest} from "next/server";
 import {NextResponse} from "next/server";
-import bcrypt from "bcryptjs";
-
 import {connectDB} from "@/server/db/connect";
 import {User} from "@/server/models/User";
 import {firebaseAdminAuth} from "@/server/firebase/admin";
-
 import {isProbablyE164, normalizePhoneE164} from "@/lib/pages/register/phone/normalize";
 
 type ResetBody = {

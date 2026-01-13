@@ -1,3 +1,6 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 import {NextResponse, type NextRequest} from "next/server";
 import {connectDB} from "@/server/db/connect";
 import {SmsCooldown} from "@/server/models/SmsCooldown";

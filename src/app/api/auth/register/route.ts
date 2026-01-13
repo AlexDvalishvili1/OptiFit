@@ -1,3 +1,6 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 import {connectDB} from "@/server/db/connect";
 import {User} from "@/server/models/User";
 import {signToken} from "@/lib/auth/jwt";

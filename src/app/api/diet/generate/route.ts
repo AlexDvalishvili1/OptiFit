@@ -1,3 +1,6 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 import {cookies} from "next/headers";
 import OpenAI from "openai";
 import type {ChatCompletionMessageParam} from "openai/resources/chat/completions";
@@ -15,9 +18,6 @@ import {
     setBan
 } from "@/server/services/banService";
 import {findUserLeanById} from "@/server/repositories/userRepo";
-
-export const maxDuration = 60;
-export const dynamic = "force-dynamic";
 
 type TokenPayload = {
     sub: string;
