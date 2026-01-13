@@ -76,8 +76,10 @@ export async function PATCH(req: NextRequest) {
         Object.assign(user, update);
         await user.save();
 
+        // user._id and user.email are now properly typed
         const newToken = await signToken({
             sub: user._id.toString(),
+            phone: user.phone,
             onboarded: !!user.advanced,
         });
 
