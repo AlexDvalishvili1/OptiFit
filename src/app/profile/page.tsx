@@ -2,48 +2,28 @@
 
 import * as React from "react";
 import {useEffect, useMemo, useState} from "react";
+import {useRouter} from "next/navigation";
+
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {Button} from "@/components/ui/button";
 import {Save} from "lucide-react";
 import {useToast} from "@/hooks/use-toast";
+
 import {ProfileHeader} from "@/components/pages/profile/ProfileHeader";
 import {AvatarCard} from "@/components/pages/profile/AvatarCard";
 import {PersonalInfoSection} from "@/components/pages/profile/PersonalInfoSection";
 import {FitnessPreferencesSection} from "@/components/pages/profile/FitnessPreferencesSection";
+
 import type {MeUser, ProfileFormData} from "@/lib/pages/profile/types";
 import {formDataToPatchPayload, userToFormData} from "@/lib/pages/profile/mappers";
 import {useAuth} from "@/components/providers/AuthProvider";
-import {useRouter} from "next/navigation";
 
 type ActivityLevelOption = { value: string; label: string };
 
 const ALLERGY_OPTIONS = [
-    "Lactose",
-    "Gluten",
-    "Peanuts",
-    "Tree Nuts",
-    "Shellfish",
-    "Fish",
-    "Soy",
-    "Eggs",
-    "Wheat",
-    "Sesame",
-    "Corn",
-    "Mustard",
-    "Celery",
-    "Sulphites",
-    "Lupin",
-    "Mollusks",
-    "Legumes",
-    "Fruit",
-    "Vegetables",
-    "Garlic",
-    "Onion",
-    "Gelatin",
-    "Meat",
-    "Spices",
-    "Chocolate",
-    "Yeast",
+    "Lactose", "Gluten", "Peanuts", "Tree Nuts", "Shellfish", "Fish", "Soy", "Eggs", "Wheat", "Sesame", "Corn",
+    "Mustard", "Celery", "Sulphites", "Lupin", "Mollusks", "Legumes", "Fruit", "Vegetables", "Garlic", "Onion",
+    "Gelatin", "Meat", "Spices", "Chocolate", "Yeast",
 ] satisfies string[];
 
 const ACTIVITY_LEVELS = [
@@ -57,8 +37,8 @@ const DEFAULT_FORM: ProfileFormData = {
     name: "",
     gender: undefined,
     dateOfBirth: "",
-    height: 0,
-    weight: 0,
+    height: "",
+    weight: "",
     activityLevel: undefined,
     fitnessGoal: undefined,
     allergies: [],
@@ -72,12 +52,9 @@ function isObject(v: unknown): v is UnknownRecord {
 
 function isMeUser(v: unknown): v is Exclude<MeUser, null> {
     if (!isObject(v)) return false;
-
     const id = v["id"];
-    const email = v["email"];
     const phone = v["phone"];
-
-    return typeof id === "string" && typeof email === "string" && typeof phone === "string";
+    return typeof id === "string" && typeof phone === "string";
 }
 
 export default function Profile() {
@@ -88,22 +65,25 @@ export default function Profile() {
     const [loading, setLoading] = useState(false);
     const [allergyPopoverOpen, setAllergyPopoverOpen] = useState(false);
 
-    // Keep local "me" only if you still need it for something else
     const [me, setMe] = useState<MeUser>(null);
     const [formData, setFormData] = useState<ProfileFormData>(DEFAULT_FORM);
 
-    // Sync local state from AuthProvider once it loads / changes
+    // ✅ live phone (updates instantly after change)
+    const basePhone = typeof (user as any)?.phone === "string" ? (user as any).phone : "";
+    const [phoneLive, setPhoneLive] = useState(basePhone);
+
+    useEffect(() => {
+        setPhoneLive(basePhone);
+    }, [basePhone]);
+
     useEffect(() => {
         if (loadingMe) return;
 
         const u = isMeUser(user) ? (user as Exclude<MeUser, null>) : null;
         setMe(u);
 
-        if (u) {
-            setFormData((prev) => userToFormData(u, prev));
-        } else {
-            setFormData(DEFAULT_FORM);
-        }
+        if (u) setFormData((prev) => userToFormData(u, prev));
+        else setFormData(DEFAULT_FORM);
     }, [loadingMe, user]);
 
     const handleChange = <K extends keyof ProfileFormData>(field: K, value: ProfileFormData[K]) => {
@@ -148,39 +128,44 @@ export default function Profile() {
             toast({
                 variant: "success",
                 title: "Profile Updated",
-                description: "Your profile has been saved successfully.",
+                description: "Your profile has been saved successfully."
             });
 
-            // Ensure the whole app updates (AdvancedCover / Navbar / layouts)
             await refresh();
             router.refresh();
 
-            // Optional: keep local "me" in sync if your API returns it
             const userUnknown = json.user ?? json.result ?? null;
             if (isMeUser(userUnknown)) setMe(userUnknown);
         } catch {
-            toast({
-                variant: "destructive",
-                title: "Network error",
-                description: "Please try again.",
-            });
+            toast({variant: "destructive", title: "Network error", description: "Please try again."});
         } finally {
             setLoading(false);
         }
     };
 
-    // For AvatarCard, use current formData (editable) + loadingMe from provider
     const avatarName = useMemo(() => formData.name, [formData.name]);
 
     return (
         <DashboardLayout>
+            {/* ✅ MUST stay mounted (prevents: reCAPTCHA client element has been removed) */}
+            <div id="recaptcha-phone-change" className="hidden"/>
+
             <div className="max-w-2xl mx-auto space-y-8">
                 <ProfileHeader/>
-
-                <AvatarCard loadingMe={loadingMe} name={avatarName}/>
+                <AvatarCard loadingMe={loadingMe} name={avatarName} phone={phoneLive}/>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <PersonalInfoSection formData={formData} onChange={handleChange}/>
+                    <PersonalInfoSection
+                        formData={formData}
+                        onChange={handleChange}
+                        phone={phoneLive}
+                        onPhoneChanged={async (newPhone) => {
+                            // ✅ instant UI update + sync auth context + refresh dashboard layout
+                            setPhoneLive(newPhone);
+                            await refresh();
+                            router.refresh();
+                        }}
+                    />
 
                     <FitnessPreferencesSection
                         activityLevels={ACTIVITY_LEVELS}

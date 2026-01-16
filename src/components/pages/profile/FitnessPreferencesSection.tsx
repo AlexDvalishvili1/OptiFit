@@ -1,5 +1,3 @@
-// src/components/pages/profile/FitnessPreferencesSection.tsx
-
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Badge} from "@/components/ui/badge";
@@ -94,6 +92,7 @@ export function FitnessPreferencesSection({
                                         type="button"
                                         onClick={() => removeAllergy(allergy)}
                                         className="h-4 w-4 rounded-full hover:bg-muted-foreground/20 flex items-center justify-center"
+                                        aria-label={`Remove ${allergy}`}
                                     >
                                         <X className="h-3 w-3"/>
                                     </button>
@@ -120,10 +119,8 @@ export function FitnessPreferencesSection({
                                             key={allergy}
                                             className="flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer text-sm"
                                         >
-                                            <Checkbox
-                                                checked={formData.allergies.includes(allergy)}
-                                                onCheckedChange={() => toggleAllergy(allergy)}
-                                            />
+                                            <Checkbox checked={formData.allergies.includes(allergy)}
+                                                      onCheckedChange={() => toggleAllergy(allergy)}/>
                                             {allergy}
                                         </label>
                                     ))}

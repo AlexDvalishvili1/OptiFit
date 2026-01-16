@@ -66,7 +66,7 @@ export default function DashboardSidebar({
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{loading ? "Loading..." : user?.name || "User"}</p>
-                            <p className="text-xs text-muted-foreground truncate">{loading ? "" : user?.email || ""}</p>
+                            <p className="text-xs text-muted-foreground truncate">{loading ? "" : user?.phone || ""}</p>
                         </div>
                     </div>
                 </div>

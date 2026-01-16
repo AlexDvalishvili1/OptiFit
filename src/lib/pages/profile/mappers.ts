@@ -1,30 +1,59 @@
-// src/lib/profile/mappers.ts
-
 import type {MeUser, ProfileFormData} from "./types";
 
-export function userToFormData(user: NonNullable<MeUser>, prev: ProfileFormData): ProfileFormData {
+function normalizeActivity(v: unknown): ProfileFormData["activityLevel"] | undefined {
+    if (v === "very active") return "very_active";
+    if (v === "sedentary" || v === "light" || v === "moderate" || v === "very_active") return v;
+    return undefined;
+}
+
+function toNumberOrEmptyFromUser(v: unknown): number | "" {
+    if (typeof v !== "number") return "";
+    if (!Number.isFinite(v) || v <= 0) return "";
+    return v;
+}
+
+export function userToFormData(user: Exclude<MeUser, null>, prev: ProfileFormData): ProfileFormData {
+    const dobRaw =
+        (typeof user.dob === "string" ? user.dob : null) ??
+        (typeof user.dateOfBirth === "string" ? user.dateOfBirth : null);
+
+    // input[type=date] prefers "YYYY-MM-DD"
+    const dob = dobRaw ? dobRaw.slice(0, 10) : "";
+
+    const activityRaw = user.activity ?? user.activityLevel;
+    const goalRaw = user.goal ?? user.fitnessGoal;
+
     return {
         ...prev,
-        name: user.name ?? "",
-        gender: user.gender ?? undefined,
-        dateOfBirth: user.dob ? String(user.dob).slice(0, 10) : "",
-        height: typeof user.height === "number" ? user.height : prev.height,
-        weight: typeof user.weight === "number" ? user.weight : prev.weight,
-        activityLevel: user.activity ?? prev.activityLevel,
-        fitnessGoal: user.goal ?? prev.fitnessGoal,
-        allergies: Array.isArray(user.allergies) ? user.allergies : prev.allergies,
+        name: typeof user.name === "string" ? user.name : "",
+        gender: (user.gender ?? undefined) as ProfileFormData["gender"],
+        dateOfBirth: dob,
+        height: toNumberOrEmptyFromUser(user.height),
+        weight: toNumberOrEmptyFromUser(user.weight),
+        activityLevel: normalizeActivity(activityRaw),
+        fitnessGoal: (goalRaw ?? undefined) as ProfileFormData["fitnessGoal"],
+        allergies: Array.isArray(user.allergies) ? user.allergies.filter((x): x is string => typeof x === "string") : [],
     };
 }
 
-export function formDataToPatchPayload(formData: ProfileFormData) {
+export function formDataToPatchPayload(form: ProfileFormData) {
+    const height = form.height === "" ? null : form.height > 0 ? form.height : null;
+    const weight = form.weight === "" ? null : form.weight > 0 ? form.weight : null;
+
     return {
-        name: formData.name.trim(),
-        gender: formData.gender,
-        dob: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
-        height: Number(formData.height),
-        weight: Number(formData.weight),
-        activity: formData.activityLevel,
-        goal: formData.fitnessGoal,
-        allergies: formData.allergies,
+        name: form.name.trim() || null,
+        gender: form.gender ?? null,
+
+        // Backend expects `dob`
+        dob: form.dateOfBirth || null,
+
+        height,
+        weight,
+
+        // Backend expects `activity` / `goal`
+        activity: form.activityLevel ?? null,
+        goal: form.fitnessGoal ?? null,
+
+        allergies: form.allergies,
     };
 }
