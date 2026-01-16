@@ -146,7 +146,7 @@ export function PersonalInfoSection({formData, onChange, phone, onPhoneChanged}:
                         inputMode="numeric"
                         value={formData.height}
                         onChange={(e) => onChange("height", toNumberOrEmpty(e.target.value))}
-                        placeholder="e.g. 180"
+                        placeholder="0"
                     />
                 </div>
 
@@ -158,7 +158,7 @@ export function PersonalInfoSection({formData, onChange, phone, onPhoneChanged}:
                         inputMode="numeric"
                         value={formData.weight}
                         onChange={(e) => onChange("weight", toNumberOrEmpty(e.target.value))}
-                        placeholder="e.g. 75"
+                        placeholder="0"
                     />
                 </div>
             </div>

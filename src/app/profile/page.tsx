@@ -52,9 +52,7 @@ function isObject(v: unknown): v is UnknownRecord {
 
 function isMeUser(v: unknown): v is Exclude<MeUser, null> {
     if (!isObject(v)) return false;
-    const id = v["id"];
-    const phone = v["phone"];
-    return typeof id === "string" && typeof phone === "string";
+    return typeof v["id"] === "string" && typeof v["phone"] === "string";
 }
 
 export default function Profile() {
@@ -62,29 +60,24 @@ export default function Profile() {
     const router = useRouter();
     const {user, loading: loadingMe, refresh} = useAuth();
 
-    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [allergyPopoverOpen, setAllergyPopoverOpen] = useState(false);
-
-    const [me, setMe] = useState<MeUser>(null);
     const [formData, setFormData] = useState<ProfileFormData>(DEFAULT_FORM);
 
-    // ✅ live phone (updates instantly after change)
-    const basePhone = typeof (user as any)?.phone === "string" ? (user as any).phone : "";
-    const [phoneLive, setPhoneLive] = useState(basePhone);
-
+    // ✅ ALWAYS refresh once when Profile mounts (this fixes “disappearing” fields)
     useEffect(() => {
-        setPhoneLive(basePhone);
-    }, [basePhone]);
+        void refresh();
+    }, [refresh]);
 
+    // ✅ map user -> form when we have a valid user
     useEffect(() => {
         if (loadingMe) return;
-
-        const u = isMeUser(user) ? (user as Exclude<MeUser, null>) : null;
-        setMe(u);
-
-        if (u) setFormData((prev) => userToFormData(u, prev));
-        else setFormData(DEFAULT_FORM);
+        if (!isMeUser(user)) return;
+        setFormData((prev) => userToFormData(user, prev));
     }, [loadingMe, user]);
+
+    // ✅ live phone (from auth user)
+    const phoneLive = typeof (user)?.phone === "string" ? (user).phone : "";
 
     const handleChange = <K extends keyof ProfileFormData>(field: K, value: ProfileFormData[K]) => {
         setFormData((prev) => ({...prev, [field]: value}));
@@ -104,7 +97,7 @@ export default function Profile() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setSaving(true);
 
         try {
             const res = await fetch("/api/profile", {
@@ -114,7 +107,7 @@ export default function Profile() {
                 body: JSON.stringify(formDataToPatchPayload(formData)),
             });
 
-            const json = (await res.json().catch(() => ({}))) as { error?: unknown; user?: unknown; result?: unknown };
+            const json = (await res.json().catch(() => ({}))) as { error?: unknown };
 
             if (!res.ok) {
                 toast({
@@ -133,13 +126,10 @@ export default function Profile() {
 
             await refresh();
             router.refresh();
-
-            const userUnknown = json.user ?? json.result ?? null;
-            if (isMeUser(userUnknown)) setMe(userUnknown);
         } catch {
             toast({variant: "destructive", title: "Network error", description: "Please try again."});
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
@@ -147,7 +137,7 @@ export default function Profile() {
 
     return (
         <DashboardLayout>
-            {/* ✅ MUST stay mounted (prevents: reCAPTCHA client element has been removed) */}
+            {/* MUST stay mounted */}
             <div id="recaptcha-phone-change" className="hidden"/>
 
             <div className="max-w-2xl mx-auto space-y-8">
@@ -159,9 +149,7 @@ export default function Profile() {
                         formData={formData}
                         onChange={handleChange}
                         phone={phoneLive}
-                        onPhoneChanged={async (newPhone) => {
-                            // ✅ instant UI update + sync auth context + refresh dashboard layout
-                            setPhoneLive(newPhone);
+                        onPhoneChanged={async () => {
                             await refresh();
                             router.refresh();
                         }}
@@ -183,9 +171,9 @@ export default function Profile() {
                     />
 
                     <div className="flex justify-end">
-                        <Button type="submit" size="lg" disabled={loading}>
+                        <Button type="submit" size="lg" disabled={saving}>
                             <Save className="mr-2 h-5 w-5"/>
-                            {loading ? "Saving..." : "Save Changes"}
+                            {saving ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </form>

@@ -27,44 +27,23 @@ export function AuthProvider({children}: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser>(null);
     const [loading, setLoading] = useState(true);
 
-    const refresh = async () => {
-        setLoading(true);
-
-        // After Set-Cookie (register/login), the very next request may race the cookie write.
-        // A couple of short retries fixes the "blank dashboard until reload" issue.
-        const attempts = 3;
-
+    const refresh = React.useCallback(async () => {
         try {
-            for (let i = 0; i < attempts; i++) {
-                const res = await fetch("/api/auth/me", {
-                    credentials: "include",
-                    cache: "no-store",
-                }).catch(() => null);
+            setLoading(true);
 
-                if (res?.ok) {
-                    const json = await res.json().catch(() => ({} as any));
-                    if (json?.user) {
-                        setUser(json.user);
-                        return;
-                    }
-                } else {
-                    // even if non-2xx, try to read payload (optional)
-                    // const json = await res?.json().catch(() => ({}));
-                }
+            const res = await fetch("/api/auth/me", {credentials: "include"});
+            const json = await res.json().catch(() => ({}));
 
-                if (i < attempts - 1) {
-                    await sleep(120);
-                    continue;
-                }
-
+            if (!res.ok) {
                 setUser(null);
+                return;
             }
-        } catch {
-            setUser(null);
+
+            setUser(json?.user ?? json ?? null);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         refresh();
