@@ -7,6 +7,7 @@ import {verifyToken} from "@/lib/auth/jwt";
 import {connectDB} from "@/server/db/connect";
 import {User} from "@/server/models/User";
 import type {AuthUser} from "@/lib/auth/types";
+import {normalizeActivity, normalizeGoal} from "@/lib/fitness/normalize";
 
 type TokenPayload = {
     sub: string;
@@ -69,8 +70,8 @@ export async function GET() {
             dob: u.dob ? u.dob.toISOString() : null,
             height: typeof u.height === "number" ? u.height : null,
             weight: typeof u.weight === "number" ? u.weight : null,
-            activity: u.activity ?? null,
-            goal: u.goal ?? null,
+            activity: normalizeActivity(u.activity) ?? null,
+            goal: normalizeGoal(u.goal) ?? null,
             allergies: Array.isArray(u.allergies) ? (u.allergies as string[]) : [],
         };
 

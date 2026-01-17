@@ -10,10 +10,8 @@ export const goalLabels: Record<NonNullable<DbUser["goal"]>, string> = {
 };
 
 export const activityLabels: Record<NonNullable<DbUser["activity"]>, string> = {
-    bmr: "BMR",
     sedentary: "Sedentary",
     light: "Lightly Active",
     moderate: "Moderately Active",
-    active: "Active",
-    "very active": "Very Active",
+    very_active: "Very Active",
 };

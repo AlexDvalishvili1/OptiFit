@@ -3,6 +3,7 @@
 import * as React from "react";
 import {useEffect, useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {Button} from "@/components/ui/button";
@@ -57,43 +58,70 @@ function isMeUser(v: unknown): v is Exclude<MeUser, null> {
     return typeof id === "string" && typeof phone === "string";
 }
 
+async function fetchProfile(): Promise<MeUser> {
+    const res = await fetch("/api/profile", {
+        credentials: "include",
+        headers: {"Cache-Control": "no-store"},
+    });
+    const json = (await res.json().catch(() => null)) as unknown;
+
+    if (!res.ok) return null;
+
+    const raw =
+        (isObject(json) && ("user" in json) ? (json).user : null) ??
+        (isObject(json) && ("result" in json) ? (json).result : null) ??
+        json;
+
+    return isMeUser(raw) ? (raw as Exclude<MeUser, null>) : null;
+}
+
 export default function Profile() {
     const {toast} = useToast();
     const router = useRouter();
-    const initializedRef = React.useRef(false);
-    const {user, loading: loadingMe, refresh} = useAuth();
+    const queryClient = useQueryClient();
+    const {refresh: refreshMe} = useAuth();
 
-    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [allergyPopoverOpen, setAllergyPopoverOpen] = useState(false);
 
-    const [me, setMe] = useState<MeUser>(null);
     const [formData, setFormData] = useState<ProfileFormData>(DEFAULT_FORM);
+    const [dirty, setDirty] = useState(false);
 
-    // ✅ live phone (updates instantly after change)
-    const basePhone = typeof (user)?.phone === "string" ? (user).phone : "";
+    const {data: me, isPending, isFetching, refetch} = useQuery({
+        queryKey: ["profile"],
+        queryFn: fetchProfile,
+        staleTime: 0,
+        gcTime: 5 * 60_000,
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+    });
+
+    const loadingMe = isPending || isFetching;
+
+    const basePhone = typeof (me)?.phone === "string" ? (me).phone : "";
     const [phoneLive, setPhoneLive] = useState(basePhone);
 
     useEffect(() => {
         setPhoneLive(basePhone);
     }, [basePhone]);
 
+    // Hydrate from profile endpoint (server-truth), never from auth/me
     useEffect(() => {
         if (loadingMe) return;
-        if (initializedRef.current) return;
+        if (dirty) return;
 
-        const u = isMeUser(user) ? (user as Exclude<MeUser, null>) : null;
-        if (!u) return;
-
-        setMe(u);
-        setFormData(userToFormData(u, DEFAULT_FORM));
-        initializedRef.current = true;
-    }, [loadingMe, user]);
+        if (me) setFormData(userToFormData(me as Exclude<MeUser, null>, DEFAULT_FORM));
+        else setFormData(DEFAULT_FORM);
+    }, [loadingMe, me, dirty]);
 
     const handleChange = <K extends keyof ProfileFormData>(field: K, value: ProfileFormData[K]) => {
+        setDirty(true);
         setFormData((prev) => ({...prev, [field]: value}));
     };
 
     const toggleAllergy = (allergy: string) => {
+        setDirty(true);
         setFormData((prev) => {
             const current = prev.allergies;
             const next = current.includes(allergy) ? current.filter((a) => a !== allergy) : [...current, allergy];
@@ -102,12 +130,13 @@ export default function Profile() {
     };
 
     const removeAllergy = (allergy: string) => {
+        setDirty(true);
         setFormData((prev) => ({...prev, allergies: prev.allergies.filter((a) => a !== allergy)}));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setSaving(true);
 
         try {
             const res = await fetch("/api/profile", {
@@ -131,18 +160,25 @@ export default function Profile() {
             toast({
                 variant: "success",
                 title: "Profile Updated",
-                description: "Your profile has been saved successfully."
+                description: "Your profile has been saved successfully.",
             });
 
-            await refresh();
+            setDirty(false);
+
+            // profile truth
+            await queryClient.invalidateQueries({queryKey: ["profile"]});
+            // auth header/sidebar
+            await refreshMe();
+
             router.refresh();
 
-            const userUnknown = json.user ?? json.result ?? null;
-            if (isMeUser(userUnknown)) setMe(userUnknown);
+            const raw = (json.user ?? json.result ?? null) as unknown;
+            if (isMeUser(raw)) queryClient.setQueryData(["profile"], raw);
+            else await refetch();
         } catch {
             toast({variant: "destructive", title: "Network error", description: "Please try again."});
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
@@ -150,7 +186,7 @@ export default function Profile() {
 
     return (
         <DashboardLayout>
-            {/* ✅ MUST stay mounted (prevents: reCAPTCHA client element has been removed) */}
+            {/* MUST stay mounted */}
             <div id="recaptcha-phone-change" className="hidden"/>
 
             <div className="max-w-2xl mx-auto space-y-8">
@@ -163,9 +199,10 @@ export default function Profile() {
                         onChange={handleChange}
                         phone={phoneLive}
                         onPhoneChanged={async (newPhone) => {
-                            // ✅ instant UI update + sync auth context + refresh dashboard layout
                             setPhoneLive(newPhone);
-                            await refresh();
+                            setDirty(false);
+                            await queryClient.invalidateQueries({queryKey: ["profile"]});
+                            await refreshMe();
                             router.refresh();
                         }}
                     />
@@ -186,9 +223,9 @@ export default function Profile() {
                     />
 
                     <div className="flex justify-end">
-                        <Button type="submit" size="lg" disabled={loading}>
+                        <Button type="submit" size="lg" disabled={saving}>
                             <Save className="mr-2 h-5 w-5"/>
-                            {loading ? "Saving..." : "Save Changes"}
+                            {saving ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </form>

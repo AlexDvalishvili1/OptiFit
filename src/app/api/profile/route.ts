@@ -7,6 +7,7 @@ import {cookies} from "next/headers";
 import {connectDB} from "@/server/db/connect";
 import {User, type UserDoc} from "@/server/models/User";
 import {verifyToken, signToken} from "@/lib/auth/jwt";
+import {normalizeActivity, normalizeGoal} from "@/lib/fitness/normalize";
 
 type TokenPayload = { sub: string; [key: string]: unknown };
 
@@ -35,6 +36,51 @@ type UserUpdate = {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null;
+}
+
+async function getUserIdFromCookie(): Promise<string | null> {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+    if (!token) return null;
+    const payload = (await verifyToken(token)) as TokenPayload;
+    return typeof payload?.sub === "string" ? payload.sub : null;
+}
+
+function toProfileResponse(user: UserDoc) {
+    return {
+        id: user._id.toString(),
+        name: user.name ?? null,
+        phone: user.phone,
+        gender: (user.gender as "male" | "female" | undefined) ?? null,
+        dob: user.dob instanceof Date ? user.dob.toISOString() : null,
+        height: typeof user.height === "number" ? user.height : null,
+        weight: typeof user.weight === "number" ? user.weight : null,
+        activity: normalizeActivity(user.activity) ?? null,
+        goal: normalizeGoal(user.goal) ?? null,
+        allergies: Array.isArray(user.allergies) ? user.allergies : [],
+        advanced: !!user.advanced,
+    };
+}
+
+export async function GET() {
+    try {
+        const userId = await getUserIdFromCookie();
+        if (!userId) return NextResponse.json({error: "Unauthorized"}, {status: 401});
+
+        await connectDB();
+
+        const user = await User.findById(userId).select(
+            "_id name phone advanced gender dob height weight activity goal allergies"
+        );
+
+        if (!user) return NextResponse.json({error: "User not found"}, {status: 404});
+
+        // Always return FULL canonical profile data
+        return NextResponse.json({user: toProfileResponse(user)}, {status: 200});
+    } catch (err) {
+        console.error("Profile GET error:", err);
+        return NextResponse.json({error: "Internal server error"}, {status: 500});
+    }
 }
 
 export async function PATCH(req: NextRequest) {
@@ -66,8 +112,14 @@ export async function PATCH(req: NextRequest) {
         if (data.weight === null) update.weight = undefined;
         if (typeof data.weight === "number" && data.weight > 0) update.weight = data.weight;
 
-        if (typeof data.activity === "string") update.activity = data.activity;
-        if (typeof data.goal === "string") update.goal = data.goal;
+        if (typeof data.activity === "string") {
+            const a = normalizeActivity(data.activity);
+            if (a) update.activity = a;
+        }
+        if (typeof data.goal === "string") {
+            const g = normalizeGoal(data.goal);
+            if (g) update.goal = g;
+        }
 
         if (Array.isArray(data.allergies)) update.allergies = data.allergies;
 
@@ -79,7 +131,6 @@ export async function PATCH(req: NextRequest) {
         Object.assign(user, update);
         await user.save();
 
-        // user._id and user.email are now properly typed
         const newToken = await signToken({
             sub: user._id.toString(),
             phone: user.phone,
@@ -87,22 +138,7 @@ export async function PATCH(req: NextRequest) {
         });
 
         const res = NextResponse.json(
-            {
-                success: true,
-                user: {
-                    id: user._id.toString(),
-                    name: user.name ?? null,
-                    phone: user.phone,
-                    gender: (user.gender as "male" | "female" | undefined) ?? null, // schema currently has gender: String
-                    dob: user.dob instanceof Date ? user.dob.toISOString() : null,
-                    height: typeof user.height === "number" ? user.height : null,
-                    weight: typeof user.weight === "number" ? user.weight : null,
-                    activity: user.activity ?? null,
-                    goal: user.goal ?? null,
-                    allergies: user.allergies ?? [],
-                    advanced: !!user.advanced,
-                },
-            },
+            {success: true, user: toProfileResponse(user)},
             {status: 200}
         );
 

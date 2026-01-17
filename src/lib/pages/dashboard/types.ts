@@ -3,7 +3,7 @@
 export type DbUser = {
     name?: string;
     goal?: "lose weight" | "maintain" | "build muscle" | "improve endurance";
-    activity?: "bmr" | "sedentary" | "light" | "moderate" | "active" | "very active";
+    activity?: "sedentary" | "light" | "moderate" | "very_active";
 };
 
 export type ProgramExercise = {
