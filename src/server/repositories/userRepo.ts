@@ -1,6 +1,3 @@
-export const maxDuration = 60;
-export const dynamic = "force-dynamic";
-
 import {User, type UserSchema} from "@/server/models/User";
 import type {UpdateQuery, QueryOptions} from "mongoose";
 import {connectDB} from "@/server/db/connect";

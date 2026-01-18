@@ -1,6 +1,3 @@
-export const maxDuration = 60;
-export const dynamic = "force-dynamic";
-
 import {connectDB} from "@/server/db/connect";
 import {findUserLeanById, updateUserById} from "@/server/repositories/userRepo";
 
