@@ -39,70 +39,78 @@ export function StepPhone({
             subtitle="We’ll send a one-time code to your phone."
             icon={<Smartphone className="h-5 w-5 text-white/80"/>}
         >
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label className="text-white/80">Phone Number</Label>
+            <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!phoneValid || loadingSend || cooldown > 0) return;
+                    onSendCode();
+                }}
+            >
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-white/80">Phone Number</Label>
 
-                    <div
-                        className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 focus-within:border-white/25">
-                        <PhoneInput
-                            defaultCountry="ge"
-                            value={phoneRaw}
-                            onBlur={onPhoneBlur}
-                            onChange={onPhoneChange}
-                            inputClassName="!bg-transparent !text-white !outline-none !border-0 !shadow-none !w-full"
-                            countrySelectorStyleProps={{
-                                buttonClassName:
-                                    "!bg-transparent !border-0 !shadow-none !px-1 !py-0 !text-white hover:!bg-white/5 rounded-md",
-                                dropdownStyleProps: {
-                                    className:
-                                        "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-y-auto overflow-hidden",
-                                },
-                            }}
-                        />
+                        <div
+                            className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 focus-within:border-white/25">
+                            <PhoneInput
+                                defaultCountry="ge"
+                                value={phoneRaw}
+                                onBlur={onPhoneBlur}
+                                onChange={onPhoneChange}
+                                inputClassName="!bg-transparent !text-white !outline-none !border-0 !shadow-none !w-full"
+                                countrySelectorStyleProps={{
+                                    buttonClassName:
+                                        "!bg-transparent !border-0 !shadow-none !px-1 !py-0 !text-white hover:!bg-white/5 rounded-md",
+                                    dropdownStyleProps: {
+                                        className:
+                                            "dark:!bg-zinc-950 dark:!text-zinc-100 !bg-white !text-zinc-900 !border !rounded-xl !shadow-xl !mt-2 !overflow-y-auto overflow-hidden",
+                                    },
+                                }}
+                            />
+                        </div>
+
+                        <div className="min-h-[18px] text-xs">
+                            {showPhoneOk ? (
+                                <div className="flex items-center gap-2 text-emerald-400">
+                                    <CheckCircle2 className="h-4 w-4"/>
+                                    <span>Valid phone number</span>
+                                </div>
+                            ) : showPhoneError ? (
+                                <div className="flex items-center gap-2 text-red-400">
+                                    <AlertCircle className="h-4 w-4"/>
+                                    <span>Please enter a valid phone number</span>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {process.env.NODE_ENV !== "production" && (
+                            <p className="text-[11px] text-white/40">
+                                Dev: use test phone <span className="font-medium text-white/70">+995568740497</span> and
+                                code{" "}
+                                <span className="font-medium text-white/70">111111</span>.
+                            </p>
+                        )}
                     </div>
 
-                    <div className="min-h-[18px] text-xs">
-                        {showPhoneOk ? (
-                            <div className="flex items-center gap-2 text-emerald-400">
-                                <CheckCircle2 className="h-4 w-4"/>
-                                <span>Valid phone number</span>
-                            </div>
-                        ) : showPhoneError ? (
-                            <div className="flex items-center gap-2 text-red-400">
-                                <AlertCircle className="h-4 w-4"/>
-                                <span>Please enter a valid phone number</span>
-                            </div>
-                        ) : null}
+                    <Button
+                        type="submit"
+                        className="w-full h-11 flex"
+                        size="lg"
+                        disabled={!phoneValid || loadingSend || cooldown > 0}
+                    >
+                        {loadingSend ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send code"}
+                        <ChevronRight className="h-4 w-4"/>
+                    </Button>
+
+                    <div className="text-center text-xs text-white/60">
+                        Already have an account?{" "}
+                        <Link href="/signin" className="text-[#10d3d3] hover:underline">
+                            Sign in
+                        </Link>
                     </div>
-
-                    {process.env.NODE_ENV !== "production" && (
-                        <p className="text-[11px] text-white/40">
-                            Dev: use test phone <span className="font-medium text-white/70">+995568740497</span> and
-                            code{" "}
-                            <span className="font-medium text-white/70">111111</span>.
-                        </p>
-                    )}
                 </div>
-
-                <Button
-                    type="button"
-                    className="w-full h-11 flex"
-                    size="lg"
-                    onClick={onSendCode}
-                    disabled={!phoneValid || loadingSend || cooldown > 0}
-                >
-                    {loadingSend ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send code"}
-                    <ChevronRight className="h-4 w-4"/>
-                </Button>
-
-                <div className="text-center text-xs text-white/60">
-                    Already have an account?{" "}
-                    <Link href="/signin" className="text-[#10d3d3] hover:underline">
-                        Sign in
-                    </Link>
-                </div>
-            </div>
+            </form>
         </RegisterCardShell>
     );
 }

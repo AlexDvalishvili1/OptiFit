@@ -51,8 +51,7 @@ STRICT RULES:
 - Every food MUST have: name, serving, calories, protein, fat, carbohydrates.
 - Use 24h time "HH:MM".
 - Meals and foods must be realistic, consistent with the totals.
-- No additional top-level keys.\`
-};`,
+- No additional top-level keys.`,
 };
 
 function isSameDay(a: Date, b: Date) {
