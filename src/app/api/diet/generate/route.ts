@@ -155,95 +155,42 @@ export async function POST(req: NextRequest) {
         // ✅ Build message prompt
         let msg: string;
 
-        // ✅ Unified JSON schema (TOP-LEVEL TOTALS ALWAYS)
-        const unifiedSchema = `
-JSON Structure (MUST follow exactly):
-{
-  "calories": 2200,
-  "protein": 160,
-  "fat": 70,
-  "carbohydrates": 240,
-  "meals": [
-    {
-      "name": "Breakfast",
-      "time": "08:00",
-      "foods": [
-        {
-          "name": "Greek yogurt",
-          "serving": "200 g",
-          "calories": 140,
-          "protein": 20,
-          "fat": 0,
-          "carbohydrates": 10
-        }
-      ]
-    }
-  ]
-}
-
-RULES:
-- calories/protein/fat/carbohydrates MUST be NUMBERS (no "g" strings).
-- Always include these 4 totals at the TOP LEVEL.
-- Always include meals array.
-- No markdown, no code fences, no extra text, JSON ONLY.
-If the conversation is not about diet or closely related to diet topics return the object "Error: True"
-If the conversation is unrelated to diet or nutrition return the object "Error: True"
-If the user message is not diet-related or nutrition-focused return the object "Error: True"
-If the discussion is outside the scope of diet or nutrition return the object "Error: True"
-If the conversation does not concern diet planning or nutrition return the object "Error: True"
-If the input is not about diet food or nutrition topics return the object "Error: True"
-If the message is not directly or indirectly related to diet return the object "Error: True"
-If the conversation topic is not diet or a closely connected nutrition subject return the object "Error: True"
-If the user request is outside the diet or nutrition domain return the object "Error: True"
-If the conversation does not involve diet nutrition or meal planning return the object "Error: True"
-If the message is unrelated to diet nutrition or eating habits return the object "Error: True"
-If the discussion is not about dietary topics or nutrition guidance return the object "Error: True"
-If the input does not reference diet or nutrition in any meaningful way return the object "Error: True"
-If the conversation is outside the allowed diet-related topic range return the object "Error: True"
-If the user message is off-topic and not related to diet or nutrition return the object "Error: True"
-If the conversation is not focused on diet nutrition or food intake return the object "Error: True"
-If the request does not concern diet-related information return the object "Error: True"
-If the discussion does not fall under diet or nutrition topics return the object "Error: True"
-If the message is not about diet or closely adjacent nutrition subjects return the object "Error: True"
-If the conversation topic is unrelated to diet planning or nutrition advice return the object "Error: True"
-`;
-
         if (reqBody?.modifying) {
             msg = `
-SYSTEM OVERRIDE:
-You are a JSON generator, not a conversational AI.
+Modify the most recent meal plan in the conversation.
 
-Any output that is not valid JSON is considered a failure.
+Rules:
+- Keep the SAME JSON schema (same keys, same structure).
+- Return the FULL updated plan (not a diff).
+- Totals (calories/macros) must match the updated foods.
+- Keep times in HH:MM.
+- Respect allergies strictly.
 
-Return ONLY a raw JSON object.
-No text before or after.
-No markdown.
-No code fences.
-No explanations.
-No comments.
+Return ONLY the JSON object.
 
-Modify the EXISTING meal plan according to the user's request.
-Return the FULL UPDATED meal plan (not only the changed part).
-
-User Input: "${reqBody.userModifications}"
-
-${unifiedSchema}
-      `;
+ATTENTION! This is user Input that you need to process:
+"${reqBody.userModifications}"
+`;
         } else {
-            msg = `I am ${userData.age} years old ${userData.gender}, my height is ${userData.height}, my weight is ${userData.weight}kg and my goal is ${userData.goal}. My physical activity level is (${userData.activity}). I have allergies to (${allergiesList}).
+            msg = `
+Create a 1-day meal plan for me.
 
-Based on my information and goal:
-- Calculate my daily calories and macros to reach this goal.
-- Create a meal plan.
+User profile:
+- Age: ${userData.age}
+- Gender: ${userData.gender}
+- Height: ${userData.height} cm
+- Weight: ${userData.weight} kg
+- Activity level: ${userData.activity}
+- Goal: ${userData.goal}
+- Allergies: ${allergiesList}
 
-STRICT OUTPUT RULES:
-1. The output must be valid JSON only.
-2. The JSON must start with '{' and end with '}'.
-3. Do NOT add markdown fences.
-4. Do NOT add explanations/text before or after JSON.
-5. Only the JSON object should be returned.
+Requirements:
+- Compute appropriate daily calories and macros for the goal.
+- Make meals practical and globally common (no obscure foods).
+- Respect allergies strictly (do not include them).
+- Keep totals consistent with foods (reasonable accuracy).
 
-${unifiedSchema}`;
+Return ONLY the JSON object described in the system instructions.`;
         }
 
         // ✅ Convert DB history into OpenAI "messages"
@@ -260,7 +207,9 @@ ${unifiedSchema}`;
         const text = result.choices?.[0]?.message?.content || "";
 
         // ✅ Your existing error / ban logic
-        if (reqBody.modifying && text.toLowerCase().includes("error")) {
+        const trimmed = text.trim();
+
+        if (reqBody.modifying && trimmed === '{"error": true}') {
             let message: string;
 
             if (ban) {

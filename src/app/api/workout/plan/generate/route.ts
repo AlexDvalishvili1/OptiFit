@@ -49,7 +49,6 @@ type UserDetails = {
 type ReqBody = {
     regenerate?: boolean;
     modifying?: boolean;
-    modifyingInput?: unknown;
     [key: string]: unknown;
 };
 
@@ -158,121 +157,35 @@ export async function POST(req: NextRequest) {
         let msg: string;
 
         if (reqBody?.modifying) {
-            msg = `You are an AI specialized in workout program design and modification.
-You are NOT a conversational assistant.
+            msg = `
+Modify the most recent workout plan in the conversation.
 
-Your task is to interpret the use's message and intelligently modify the workout plan while considering volume, recovery, balance, and safety.
+Rules:
+- Keep the SAME JSON schema and keys.
+- Return the FULL updated 7-day plan (not a diff).
+- Keep days Monday-Sunday in order, exactly 7 objects.
+- Rest day format must remain valid.
+- Maintain weekly balance, recovery, and safety.
 
-GENERAL RULE
-If the message is related to the workout plan, modify it intelligently and return the FULL updated workout plan.
-If the message is not related to the workout plan, return ONLY this exact text:
-"Error: Please provide a plan-related request."
-
-Never explain reasoning.
-Never ask follow-up questions.
-Never output anything except the full plan or the exact error message.
-
-PLAN MODIFICATION RULES
-
-If the user explicitly asks to change, update, regenerate, or replace the plan:
-Rebuild the affected part, ensure weekly balance, adjust exercises, sets, and reps, and return the FULL updated plan.
-
-If the user mentions unavailable, busy, or missing equipment:
-Remove all dependent exercises, replace them with biomechanically similar alternatives, adjust volume if needed, and return the FULL updated plan.
-
-If the user mentions time limits, unavailable days, or scheduling conflicts:
-Redistribute workouts across available days, keep all muscle groups trained, convert unavailable days to rest if needed, manage fatigue, and return the FULL updated plan.
-
-If the user mentions injuries or medical conditions:
-Prioritize safety, remove risky movements, use joint-friendly alternatives, reduce load or volume if needed, and return the FULL updated plan.
-
-INVALID INPUT
-
-If the message is casual, social, unrelated, nonsensical, or unreadable, return ONLY:
-"Error: Please provide a plan-related request."
-
-EXPECTED BEHAVIOR
-
-Never return partial updates.
-Never explain changes.
-Output ONLY one of the following:
-A FULL updated workout plan
-OR
-The exact error message
-
-SAMPLE BEHAVIOR
-
-User: "No Friday."
-AI: FULL updated workout plan
-
-User: "I have scoliosis."
-AI: FULL updated workout plan with safe alternatives
-
-User: "Hello."
-AI: "Error: Please provide a plan-related request."
+Return ONLY the JSON array.
 
 ATTENTION! This is user Input that you need to process:
 "${String((reqBody as { modifying?: unknown }).modifying)}"`;
         } else {
             msg = `
-Generate a COMPLETE 7-day weekly gym training program in PURE JSON format for a ${userData.age}-year-old ${userData.gender} whose goal is ${userData.goal}.
+Generate a complete 7-day weekly gym training program.
 
-You are an AI that generates structured workout programs.
+User profile:
+- Age: ${userData.age}
+- Gender: ${userData.gender}
+- Goal: ${userData.goal}
 
-CRITICAL OUTPUT RULES
-Output MUST be valid JSON only.
-Output MUST start with [ and end with ].
-Do NOT include markdown, explanations, comments, headings, or extra text.
-Do NOT include trailing commas.
-All strings must use valid JSON escapes only (\\n, \\", \\\\, \\t, \\b, \\f, \\r).
-Do NOT include emojis or non-ASCII characters.
-Strings MUST NOT contain unescaped quotes.
-The output MUST be parsable by JSON.parse() without preprocessing.
-
-URL RULES
-All video URLs must be valid, contain no spaces, and start with https://.
-
-REQUIRED STRUCTURE (DO NOT CHANGE KEYS)
-
-[
-{
-"day": "Monday through Sunday",
-"rest": true or false,
-"muscles": "Targeted muscles or 'Rest'",
-"exercises": [
-{
-"name": "Exercise name",
-"sets": "number as string",
-"reps": "rep range or time as string",
-"instructions": "Use ONLY \n for line breaks",
-"video": "YouTube URL"
-}
-]
-}
-]
-
-STRUCTURAL RULES
-Provide EXACTLY 7 objects: Monday to Sunday.
-Rest days MUST have "rest": true, "muscles": "Rest", and "exercises": [].
-Training days MUST have "rest": false and at least 2 exercises.
-Exercise names must be realistic gym exercises.
-Instructions must be clear, concise, and actionable.
-Never include unescaped backslashes.
-
-QUALITY RULES
-The program must match the stated goal (${userData.goal}).
-Intensity, volume, and exercise selection must be age-appropriate.
-Avoid unsafe, redundant, or contradictory exercises.
-Prefer compound movements before isolation exercises.
-Ensure logical balance and progression across the week.
-
-FINAL COMMAND
-Return ONLY pure JSON.
-No explanations.
-No extra characters.
-No markdown.
-
-`;
+Requirements:
+- EXACTLY 7 days Monday-Sunday in order.
+- Include 2-5 training days and 2-3 rest days (choose appropriate split).
+- Each training day: 4-7 exercises total, at least 1 compound lift.
+- Keep it realistic for a normal gym.
+- Return ONLY the JSON array described in system instructions.`;
         }
 
         const messages: ChatCompletionMessageParam[] = [...history, {role: "user", content: msg}];
@@ -285,7 +198,9 @@ No markdown.
 
         const text = result.choices?.[0]?.message?.content || "";
 
-        if (reqBody.modifying && text.toLowerCase().includes("error")) {
+        const trimmed = text.trim();
+
+        if (reqBody.modifying && trimmed === '[{"error":true}]') {
             let message: string;
 
             if (ban) {
