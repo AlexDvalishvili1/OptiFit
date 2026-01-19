@@ -1,6 +1,5 @@
 "use client";
 
-import {useState} from "react";
 import {DashboardLayout} from "@/components/layout/dashboard/DashboardLayout";
 import {useAppStore} from "@/lib/store";
 import {useToast} from "@/hooks/use-toast";
@@ -17,14 +16,24 @@ export default function Page() {
     const router = useRouter();
     const {toast} = useToast();
 
-    const handleDeleteAccount = () => {
-        // TODO: Call API to delete account
-        // DELETE /api/user/delete
-        logout();
-        toast({
-            title: "Account Deleted",
-            description: "Your account has been permanently deleted.",
+    const handleDeleteAccount = async (password: string) => {
+        const res = await fetch("/api/user/delete", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", Accept: "application/json"},
+            credentials: "include",
+            body: JSON.stringify({password}),
         });
+
+        const json = (await res.json().catch(() => ({}))) as { error?: unknown };
+
+        if (!res.ok) {
+            const msg = json?.error ? String(json.error) : "Delete failed";
+            toast({variant: "destructive", title: "Could not delete account", description: msg});
+            throw new Error(msg);
+        }
+
+        logout();
+        toast({title: "Account Deleted", description: "Your account has been permanently deleted."});
         router.push("/");
     };
 
